@@ -106,7 +106,7 @@ void main() {
       ),
     ];
 
-    testWidgets('renders RingCarousel, NO Spin for Tonight, and dynamic shelves', (tester) async {
+    testWidgets('renders simple scrolling flashcard carousel with indicator and recipe cards', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -129,30 +129,23 @@ void main() {
       // Top App Bar
       expect(find.text('FOODIES'), findsOneWidget);
 
-      // Verify Spin for Tonight button is REMOVED completely
-      expect(find.text('Spin for Tonight'), findsNothing);
+      // Recipe count indicator
+      expect(find.text('RECIPE 1 OF 2'), findsOneWidget);
+      expect(find.text('Swipe to loop'), findsOneWidget);
 
-      // 60-70% flashcard dish title is visible when at the top
+      // Flashcard dish title is visible in the carousel
       expect(find.text('Grilled Garlic Herb Chicken'), findsWidgets);
 
-      // Scroll up vertically to morph cards into disc and reveal shelves
-      await tester.drag(find.byType(CustomScrollView), const Offset(0, -700));
+      // Swipe horizontally to next card
+      final pageView = tester.widget<PageView>(find.byType(PageView));
+      pageView.controller!.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.ease,
+      );
       await tester.pumpAndSettle();
 
-      // Section Header
-      expect(find.text('BROWSE BY CRAVING & GOAL'), findsOneWidget);
-
-      // Gym & High-Protein shelf (matched via proteinGrams >= 25)
-      expect(find.text('💪 Gym & High-Protein'), findsOneWidget);
-
-      // Chicken Specials shelf (matched via ingredient name 'chicken breast')
-      expect(find.text('🍗 Chicken Specials'), findsOneWidget);
-
-      // Quick Egg Meals shelf (matched via ingredient 'fresh egg')
-      expect(find.text('🥚 Quick Egg Meals'), findsOneWidget);
-
-      // Paneer shelf should NOT show because no paneer recipes exist in test data
-      expect(find.text('🧀 Paneer & Soya Specials'), findsNothing);
+      // Second card is now active
+      expect(find.text('Masala Egg Bhurji'), findsWidgets);
     });
 
     testWidgets('RingCarousel renders standalone with images list', (tester) async {
