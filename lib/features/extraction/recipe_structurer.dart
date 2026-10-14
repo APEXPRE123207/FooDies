@@ -430,6 +430,7 @@ Output ONLY raw, valid JSON matching the exact schema below. Do NOT wrap the out
               unit: item['unit']?.toString().trim(),
               notes: note != null && note.isNotEmpty ? note : null,
               isOptional: isOpt,
+              isEstimated: item['is_estimated'] == true,
               sortOrder: i,
             ),
           );
@@ -508,12 +509,14 @@ Output ONLY raw, valid JSON matching the exact schema below. Do NOT wrap the out
       int? prepTime;
       int? cookTime;
       int? totalTime;
+      bool isTimeEstimated = false;
 
       if (json['times'] is Map) {
         final timesMap = json['times'] as Map;
         prepTime = _safeInt(timesMap['prep_time_minutes']);
         cookTime = _safeInt(timesMap['cook_time_minutes']);
         totalTime = _safeInt(timesMap['total_time_minutes']);
+        isTimeEstimated = timesMap['is_estimated'] == true;
       }
       prepTime ??= _safeInt(json['prepTimeMinutes']);
       cookTime ??= _safeInt(json['cookTimeMinutes']);
@@ -633,6 +636,9 @@ Output ONLY raw, valid JSON matching the exact schema below. Do NOT wrap the out
         }
       }
 
+      final primaryBadge = (bestFor is Map) ? bestFor['primary_badge']?.toString().trim() : null;
+      final macroProfile = (nutritionMap != null) ? nutritionMap['macro_profile']?.toString().trim() : null;
+
       final now = DateTime.now();
 
       return Recipe(
@@ -648,8 +654,12 @@ Output ONLY raw, valid JSON matching the exact schema below. Do NOT wrap the out
         prepTimeMinutes: prepTime,
         cookTimeMinutes: cookTime,
         totalTimeMinutes: totalTime,
+        isTimeEstimated: isTimeEstimated,
         servingCount: servingCount,
         nutrition: nutrition,
+        primaryBadge: (primaryBadge != null && primaryBadge.isNotEmpty) ? primaryBadge : null,
+        suitabilityReason: (suitabilityReason != null && suitabilityReason.isNotEmpty) ? suitabilityReason : null,
+        macroProfile: (macroProfile != null && macroProfile.isNotEmpty) ? macroProfile : null,
         isFavorite: false,
         extractionConfidence: 0.95,
         createdAt: now,

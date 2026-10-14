@@ -146,15 +146,7 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 30),
 
-          // Version
-          const Center(
-            child: Text(
-              'Foodies v1.0.0 • Android First',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-            ),
-          ),
         ],
       ),
     );

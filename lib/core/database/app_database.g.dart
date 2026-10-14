@@ -214,6 +214,55 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _primaryBadgeMeta = const VerificationMeta(
+    'primaryBadge',
+  );
+  @override
+  late final GeneratedColumn<String> primaryBadge = GeneratedColumn<String>(
+    'primary_badge',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _suitabilityReasonMeta = const VerificationMeta(
+    'suitabilityReason',
+  );
+  @override
+  late final GeneratedColumn<String> suitabilityReason =
+      GeneratedColumn<String>(
+        'suitability_reason',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _macroProfileMeta = const VerificationMeta(
+    'macroProfile',
+  );
+  @override
+  late final GeneratedColumn<String> macroProfile = GeneratedColumn<String>(
+    'macro_profile',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isTimeEstimatedMeta = const VerificationMeta(
+    'isTimeEstimated',
+  );
+  @override
+  late final GeneratedColumn<bool> isTimeEstimated = GeneratedColumn<bool>(
+    'is_time_estimated',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_time_estimated" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _isFavoriteMeta = const VerificationMeta(
     'isFavorite',
   );
@@ -285,6 +334,10 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     fatGrams,
     nutritionMethod,
     nutritionConfidence,
+    primaryBadge,
+    suitabilityReason,
+    macroProfile,
+    isTimeEstimated,
     isFavorite,
     extractionConfidence,
     createdAt,
@@ -453,6 +506,42 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
         ),
       );
     }
+    if (data.containsKey('primary_badge')) {
+      context.handle(
+        _primaryBadgeMeta,
+        primaryBadge.isAcceptableOrUnknown(
+          data['primary_badge']!,
+          _primaryBadgeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('suitability_reason')) {
+      context.handle(
+        _suitabilityReasonMeta,
+        suitabilityReason.isAcceptableOrUnknown(
+          data['suitability_reason']!,
+          _suitabilityReasonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('macro_profile')) {
+      context.handle(
+        _macroProfileMeta,
+        macroProfile.isAcceptableOrUnknown(
+          data['macro_profile']!,
+          _macroProfileMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_time_estimated')) {
+      context.handle(
+        _isTimeEstimatedMeta,
+        isTimeEstimated.isAcceptableOrUnknown(
+          data['is_time_estimated']!,
+          _isTimeEstimatedMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_favorite')) {
       context.handle(
         _isFavoriteMeta,
@@ -565,6 +654,22 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
         DriftSqlType.string,
         data['${effectivePrefix}nutrition_confidence'],
       ),
+      primaryBadge: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}primary_badge'],
+      ),
+      suitabilityReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}suitability_reason'],
+      ),
+      macroProfile: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}macro_profile'],
+      ),
+      isTimeEstimated: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_time_estimated'],
+      )!,
       isFavorite: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_favorite'],
@@ -610,6 +715,10 @@ class Recipe extends DataClass implements Insertable<Recipe> {
   final double? fatGrams;
   final String? nutritionMethod;
   final String? nutritionConfidence;
+  final String? primaryBadge;
+  final String? suitabilityReason;
+  final String? macroProfile;
+  final bool isTimeEstimated;
   final bool isFavorite;
   final double? extractionConfidence;
   final DateTime createdAt;
@@ -634,6 +743,10 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     this.fatGrams,
     this.nutritionMethod,
     this.nutritionConfidence,
+    this.primaryBadge,
+    this.suitabilityReason,
+    this.macroProfile,
+    required this.isTimeEstimated,
     required this.isFavorite,
     this.extractionConfidence,
     required this.createdAt,
@@ -693,6 +806,16 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     if (!nullToAbsent || nutritionConfidence != null) {
       map['nutrition_confidence'] = Variable<String>(nutritionConfidence);
     }
+    if (!nullToAbsent || primaryBadge != null) {
+      map['primary_badge'] = Variable<String>(primaryBadge);
+    }
+    if (!nullToAbsent || suitabilityReason != null) {
+      map['suitability_reason'] = Variable<String>(suitabilityReason);
+    }
+    if (!nullToAbsent || macroProfile != null) {
+      map['macro_profile'] = Variable<String>(macroProfile);
+    }
+    map['is_time_estimated'] = Variable<bool>(isTimeEstimated);
     map['is_favorite'] = Variable<bool>(isFavorite);
     if (!nullToAbsent || extractionConfidence != null) {
       map['extraction_confidence'] = Variable<double>(extractionConfidence);
@@ -755,6 +878,16 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       nutritionConfidence: nutritionConfidence == null && nullToAbsent
           ? const Value.absent()
           : Value(nutritionConfidence),
+      primaryBadge: primaryBadge == null && nullToAbsent
+          ? const Value.absent()
+          : Value(primaryBadge),
+      suitabilityReason: suitabilityReason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suitabilityReason),
+      macroProfile: macroProfile == null && nullToAbsent
+          ? const Value.absent()
+          : Value(macroProfile),
+      isTimeEstimated: Value(isTimeEstimated),
       isFavorite: Value(isFavorite),
       extractionConfidence: extractionConfidence == null && nullToAbsent
           ? const Value.absent()
@@ -793,6 +926,12 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       nutritionConfidence: serializer.fromJson<String?>(
         json['nutritionConfidence'],
       ),
+      primaryBadge: serializer.fromJson<String?>(json['primaryBadge']),
+      suitabilityReason: serializer.fromJson<String?>(
+        json['suitabilityReason'],
+      ),
+      macroProfile: serializer.fromJson<String?>(json['macroProfile']),
+      isTimeEstimated: serializer.fromJson<bool>(json['isTimeEstimated']),
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       extractionConfidence: serializer.fromJson<double?>(
         json['extractionConfidence'],
@@ -824,6 +963,10 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       'fatGrams': serializer.toJson<double?>(fatGrams),
       'nutritionMethod': serializer.toJson<String?>(nutritionMethod),
       'nutritionConfidence': serializer.toJson<String?>(nutritionConfidence),
+      'primaryBadge': serializer.toJson<String?>(primaryBadge),
+      'suitabilityReason': serializer.toJson<String?>(suitabilityReason),
+      'macroProfile': serializer.toJson<String?>(macroProfile),
+      'isTimeEstimated': serializer.toJson<bool>(isTimeEstimated),
       'isFavorite': serializer.toJson<bool>(isFavorite),
       'extractionConfidence': serializer.toJson<double?>(extractionConfidence),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -851,6 +994,10 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     Value<double?> fatGrams = const Value.absent(),
     Value<String?> nutritionMethod = const Value.absent(),
     Value<String?> nutritionConfidence = const Value.absent(),
+    Value<String?> primaryBadge = const Value.absent(),
+    Value<String?> suitabilityReason = const Value.absent(),
+    Value<String?> macroProfile = const Value.absent(),
+    bool? isTimeEstimated,
     bool? isFavorite,
     Value<double?> extractionConfidence = const Value.absent(),
     DateTime? createdAt,
@@ -893,6 +1040,12 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     nutritionConfidence: nutritionConfidence.present
         ? nutritionConfidence.value
         : this.nutritionConfidence,
+    primaryBadge: primaryBadge.present ? primaryBadge.value : this.primaryBadge,
+    suitabilityReason: suitabilityReason.present
+        ? suitabilityReason.value
+        : this.suitabilityReason,
+    macroProfile: macroProfile.present ? macroProfile.value : this.macroProfile,
+    isTimeEstimated: isTimeEstimated ?? this.isTimeEstimated,
     isFavorite: isFavorite ?? this.isFavorite,
     extractionConfidence: extractionConfidence.present
         ? extractionConfidence.value
@@ -949,6 +1102,18 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       nutritionConfidence: data.nutritionConfidence.present
           ? data.nutritionConfidence.value
           : this.nutritionConfidence,
+      primaryBadge: data.primaryBadge.present
+          ? data.primaryBadge.value
+          : this.primaryBadge,
+      suitabilityReason: data.suitabilityReason.present
+          ? data.suitabilityReason.value
+          : this.suitabilityReason,
+      macroProfile: data.macroProfile.present
+          ? data.macroProfile.value
+          : this.macroProfile,
+      isTimeEstimated: data.isTimeEstimated.present
+          ? data.isTimeEstimated.value
+          : this.isTimeEstimated,
       isFavorite: data.isFavorite.present
           ? data.isFavorite.value
           : this.isFavorite,
@@ -982,6 +1147,10 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           ..write('fatGrams: $fatGrams, ')
           ..write('nutritionMethod: $nutritionMethod, ')
           ..write('nutritionConfidence: $nutritionConfidence, ')
+          ..write('primaryBadge: $primaryBadge, ')
+          ..write('suitabilityReason: $suitabilityReason, ')
+          ..write('macroProfile: $macroProfile, ')
+          ..write('isTimeEstimated: $isTimeEstimated, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('extractionConfidence: $extractionConfidence, ')
           ..write('createdAt: $createdAt, ')
@@ -1011,6 +1180,10 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     fatGrams,
     nutritionMethod,
     nutritionConfidence,
+    primaryBadge,
+    suitabilityReason,
+    macroProfile,
+    isTimeEstimated,
     isFavorite,
     extractionConfidence,
     createdAt,
@@ -1039,6 +1212,10 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           other.fatGrams == this.fatGrams &&
           other.nutritionMethod == this.nutritionMethod &&
           other.nutritionConfidence == this.nutritionConfidence &&
+          other.primaryBadge == this.primaryBadge &&
+          other.suitabilityReason == this.suitabilityReason &&
+          other.macroProfile == this.macroProfile &&
+          other.isTimeEstimated == this.isTimeEstimated &&
           other.isFavorite == this.isFavorite &&
           other.extractionConfidence == this.extractionConfidence &&
           other.createdAt == this.createdAt &&
@@ -1065,6 +1242,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
   final Value<double?> fatGrams;
   final Value<String?> nutritionMethod;
   final Value<String?> nutritionConfidence;
+  final Value<String?> primaryBadge;
+  final Value<String?> suitabilityReason;
+  final Value<String?> macroProfile;
+  final Value<bool> isTimeEstimated;
   final Value<bool> isFavorite;
   final Value<double?> extractionConfidence;
   final Value<DateTime> createdAt;
@@ -1090,6 +1271,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     this.fatGrams = const Value.absent(),
     this.nutritionMethod = const Value.absent(),
     this.nutritionConfidence = const Value.absent(),
+    this.primaryBadge = const Value.absent(),
+    this.suitabilityReason = const Value.absent(),
+    this.macroProfile = const Value.absent(),
+    this.isTimeEstimated = const Value.absent(),
     this.isFavorite = const Value.absent(),
     this.extractionConfidence = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -1116,6 +1301,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     this.fatGrams = const Value.absent(),
     this.nutritionMethod = const Value.absent(),
     this.nutritionConfidence = const Value.absent(),
+    this.primaryBadge = const Value.absent(),
+    this.suitabilityReason = const Value.absent(),
+    this.macroProfile = const Value.absent(),
+    this.isTimeEstimated = const Value.absent(),
     this.isFavorite = const Value.absent(),
     this.extractionConfidence = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -1143,6 +1332,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     Expression<double>? fatGrams,
     Expression<String>? nutritionMethod,
     Expression<String>? nutritionConfidence,
+    Expression<String>? primaryBadge,
+    Expression<String>? suitabilityReason,
+    Expression<String>? macroProfile,
+    Expression<bool>? isTimeEstimated,
     Expression<bool>? isFavorite,
     Expression<double>? extractionConfidence,
     Expression<DateTime>? createdAt,
@@ -1171,6 +1364,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
       if (nutritionMethod != null) 'nutrition_method': nutritionMethod,
       if (nutritionConfidence != null)
         'nutrition_confidence': nutritionConfidence,
+      if (primaryBadge != null) 'primary_badge': primaryBadge,
+      if (suitabilityReason != null) 'suitability_reason': suitabilityReason,
+      if (macroProfile != null) 'macro_profile': macroProfile,
+      if (isTimeEstimated != null) 'is_time_estimated': isTimeEstimated,
       if (isFavorite != null) 'is_favorite': isFavorite,
       if (extractionConfidence != null)
         'extraction_confidence': extractionConfidence,
@@ -1200,6 +1397,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     Value<double?>? fatGrams,
     Value<String?>? nutritionMethod,
     Value<String?>? nutritionConfidence,
+    Value<String?>? primaryBadge,
+    Value<String?>? suitabilityReason,
+    Value<String?>? macroProfile,
+    Value<bool>? isTimeEstimated,
     Value<bool>? isFavorite,
     Value<double?>? extractionConfidence,
     Value<DateTime>? createdAt,
@@ -1226,6 +1427,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
       fatGrams: fatGrams ?? this.fatGrams,
       nutritionMethod: nutritionMethod ?? this.nutritionMethod,
       nutritionConfidence: nutritionConfidence ?? this.nutritionConfidence,
+      primaryBadge: primaryBadge ?? this.primaryBadge,
+      suitabilityReason: suitabilityReason ?? this.suitabilityReason,
+      macroProfile: macroProfile ?? this.macroProfile,
+      isTimeEstimated: isTimeEstimated ?? this.isTimeEstimated,
       isFavorite: isFavorite ?? this.isFavorite,
       extractionConfidence: extractionConfidence ?? this.extractionConfidence,
       createdAt: createdAt ?? this.createdAt,
@@ -1294,6 +1499,18 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     if (nutritionConfidence.present) {
       map['nutrition_confidence'] = Variable<String>(nutritionConfidence.value);
     }
+    if (primaryBadge.present) {
+      map['primary_badge'] = Variable<String>(primaryBadge.value);
+    }
+    if (suitabilityReason.present) {
+      map['suitability_reason'] = Variable<String>(suitabilityReason.value);
+    }
+    if (macroProfile.present) {
+      map['macro_profile'] = Variable<String>(macroProfile.value);
+    }
+    if (isTimeEstimated.present) {
+      map['is_time_estimated'] = Variable<bool>(isTimeEstimated.value);
+    }
     if (isFavorite.present) {
       map['is_favorite'] = Variable<bool>(isFavorite.value);
     }
@@ -1336,6 +1553,10 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
           ..write('fatGrams: $fatGrams, ')
           ..write('nutritionMethod: $nutritionMethod, ')
           ..write('nutritionConfidence: $nutritionConfidence, ')
+          ..write('primaryBadge: $primaryBadge, ')
+          ..write('suitabilityReason: $suitabilityReason, ')
+          ..write('macroProfile: $macroProfile, ')
+          ..write('isTimeEstimated: $isTimeEstimated, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('extractionConfidence: $extractionConfidence, ')
           ..write('createdAt: $createdAt, ')
@@ -1428,6 +1649,21 @@ class $IngredientsTable extends Ingredients
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _isEstimatedMeta = const VerificationMeta(
+    'isEstimated',
+  );
+  @override
+  late final GeneratedColumn<bool> isEstimated = GeneratedColumn<bool>(
+    'is_estimated',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_estimated" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _sortOrderMeta = const VerificationMeta(
     'sortOrder',
   );
@@ -1449,6 +1685,7 @@ class $IngredientsTable extends Ingredients
     unit,
     notes,
     isOptional,
+    isEstimated,
     sortOrder,
   ];
   @override
@@ -1508,6 +1745,15 @@ class $IngredientsTable extends Ingredients
         isOptional.isAcceptableOrUnknown(data['is_optional']!, _isOptionalMeta),
       );
     }
+    if (data.containsKey('is_estimated')) {
+      context.handle(
+        _isEstimatedMeta,
+        isEstimated.isAcceptableOrUnknown(
+          data['is_estimated']!,
+          _isEstimatedMeta,
+        ),
+      );
+    }
     if (data.containsKey('sort_order')) {
       context.handle(
         _sortOrderMeta,
@@ -1551,6 +1797,10 @@ class $IngredientsTable extends Ingredients
         DriftSqlType.bool,
         data['${effectivePrefix}is_optional'],
       )!,
+      isEstimated: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_estimated'],
+      )!,
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
@@ -1572,6 +1822,7 @@ class Ingredient extends DataClass implements Insertable<Ingredient> {
   final String? unit;
   final String? notes;
   final bool isOptional;
+  final bool isEstimated;
   final int sortOrder;
   const Ingredient({
     required this.id,
@@ -1581,6 +1832,7 @@ class Ingredient extends DataClass implements Insertable<Ingredient> {
     this.unit,
     this.notes,
     required this.isOptional,
+    required this.isEstimated,
     required this.sortOrder,
   });
   @override
@@ -1599,6 +1851,7 @@ class Ingredient extends DataClass implements Insertable<Ingredient> {
       map['notes'] = Variable<String>(notes);
     }
     map['is_optional'] = Variable<bool>(isOptional);
+    map['is_estimated'] = Variable<bool>(isEstimated);
     map['sort_order'] = Variable<int>(sortOrder);
     return map;
   }
@@ -1616,6 +1869,7 @@ class Ingredient extends DataClass implements Insertable<Ingredient> {
           ? const Value.absent()
           : Value(notes),
       isOptional: Value(isOptional),
+      isEstimated: Value(isEstimated),
       sortOrder: Value(sortOrder),
     );
   }
@@ -1633,6 +1887,7 @@ class Ingredient extends DataClass implements Insertable<Ingredient> {
       unit: serializer.fromJson<String?>(json['unit']),
       notes: serializer.fromJson<String?>(json['notes']),
       isOptional: serializer.fromJson<bool>(json['isOptional']),
+      isEstimated: serializer.fromJson<bool>(json['isEstimated']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
     );
   }
@@ -1647,6 +1902,7 @@ class Ingredient extends DataClass implements Insertable<Ingredient> {
       'unit': serializer.toJson<String?>(unit),
       'notes': serializer.toJson<String?>(notes),
       'isOptional': serializer.toJson<bool>(isOptional),
+      'isEstimated': serializer.toJson<bool>(isEstimated),
       'sortOrder': serializer.toJson<int>(sortOrder),
     };
   }
@@ -1659,6 +1915,7 @@ class Ingredient extends DataClass implements Insertable<Ingredient> {
     Value<String?> unit = const Value.absent(),
     Value<String?> notes = const Value.absent(),
     bool? isOptional,
+    bool? isEstimated,
     int? sortOrder,
   }) => Ingredient(
     id: id ?? this.id,
@@ -1668,6 +1925,7 @@ class Ingredient extends DataClass implements Insertable<Ingredient> {
     unit: unit.present ? unit.value : this.unit,
     notes: notes.present ? notes.value : this.notes,
     isOptional: isOptional ?? this.isOptional,
+    isEstimated: isEstimated ?? this.isEstimated,
     sortOrder: sortOrder ?? this.sortOrder,
   );
   Ingredient copyWithCompanion(IngredientsCompanion data) {
@@ -1681,6 +1939,9 @@ class Ingredient extends DataClass implements Insertable<Ingredient> {
       isOptional: data.isOptional.present
           ? data.isOptional.value
           : this.isOptional,
+      isEstimated: data.isEstimated.present
+          ? data.isEstimated.value
+          : this.isEstimated,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
     );
   }
@@ -1695,6 +1956,7 @@ class Ingredient extends DataClass implements Insertable<Ingredient> {
           ..write('unit: $unit, ')
           ..write('notes: $notes, ')
           ..write('isOptional: $isOptional, ')
+          ..write('isEstimated: $isEstimated, ')
           ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
@@ -1709,6 +1971,7 @@ class Ingredient extends DataClass implements Insertable<Ingredient> {
     unit,
     notes,
     isOptional,
+    isEstimated,
     sortOrder,
   );
   @override
@@ -1722,6 +1985,7 @@ class Ingredient extends DataClass implements Insertable<Ingredient> {
           other.unit == this.unit &&
           other.notes == this.notes &&
           other.isOptional == this.isOptional &&
+          other.isEstimated == this.isEstimated &&
           other.sortOrder == this.sortOrder);
 }
 
@@ -1733,6 +1997,7 @@ class IngredientsCompanion extends UpdateCompanion<Ingredient> {
   final Value<String?> unit;
   final Value<String?> notes;
   final Value<bool> isOptional;
+  final Value<bool> isEstimated;
   final Value<int> sortOrder;
   final Value<int> rowid;
   const IngredientsCompanion({
@@ -1743,6 +2008,7 @@ class IngredientsCompanion extends UpdateCompanion<Ingredient> {
     this.unit = const Value.absent(),
     this.notes = const Value.absent(),
     this.isOptional = const Value.absent(),
+    this.isEstimated = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1754,6 +2020,7 @@ class IngredientsCompanion extends UpdateCompanion<Ingredient> {
     this.unit = const Value.absent(),
     this.notes = const Value.absent(),
     this.isOptional = const Value.absent(),
+    this.isEstimated = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1767,6 +2034,7 @@ class IngredientsCompanion extends UpdateCompanion<Ingredient> {
     Expression<String>? unit,
     Expression<String>? notes,
     Expression<bool>? isOptional,
+    Expression<bool>? isEstimated,
     Expression<int>? sortOrder,
     Expression<int>? rowid,
   }) {
@@ -1778,6 +2046,7 @@ class IngredientsCompanion extends UpdateCompanion<Ingredient> {
       if (unit != null) 'unit': unit,
       if (notes != null) 'notes': notes,
       if (isOptional != null) 'is_optional': isOptional,
+      if (isEstimated != null) 'is_estimated': isEstimated,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1791,6 +2060,7 @@ class IngredientsCompanion extends UpdateCompanion<Ingredient> {
     Value<String?>? unit,
     Value<String?>? notes,
     Value<bool>? isOptional,
+    Value<bool>? isEstimated,
     Value<int>? sortOrder,
     Value<int>? rowid,
   }) {
@@ -1802,6 +2072,7 @@ class IngredientsCompanion extends UpdateCompanion<Ingredient> {
       unit: unit ?? this.unit,
       notes: notes ?? this.notes,
       isOptional: isOptional ?? this.isOptional,
+      isEstimated: isEstimated ?? this.isEstimated,
       sortOrder: sortOrder ?? this.sortOrder,
       rowid: rowid ?? this.rowid,
     );
@@ -1831,6 +2102,9 @@ class IngredientsCompanion extends UpdateCompanion<Ingredient> {
     if (isOptional.present) {
       map['is_optional'] = Variable<bool>(isOptional.value);
     }
+    if (isEstimated.present) {
+      map['is_estimated'] = Variable<bool>(isEstimated.value);
+    }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
@@ -1850,6 +2124,7 @@ class IngredientsCompanion extends UpdateCompanion<Ingredient> {
           ..write('unit: $unit, ')
           ..write('notes: $notes, ')
           ..write('isOptional: $isOptional, ')
+          ..write('isEstimated: $isEstimated, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3565,6 +3840,10 @@ typedef $$RecipesTableCreateCompanionBuilder = RecipesCompanion Function({
   Value<double?> fatGrams,
   Value<String?> nutritionMethod,
   Value<String?> nutritionConfidence,
+  Value<String?> primaryBadge,
+  Value<String?> suitabilityReason,
+  Value<String?> macroProfile,
+  Value<bool> isTimeEstimated,
   Value<bool> isFavorite,
   Value<double?> extractionConfidence,
   Value<DateTime> createdAt,
@@ -3591,6 +3870,10 @@ typedef $$RecipesTableUpdateCompanionBuilder = RecipesCompanion Function({
   Value<double?> fatGrams,
   Value<String?> nutritionMethod,
   Value<String?> nutritionConfidence,
+  Value<String?> primaryBadge,
+  Value<String?> suitabilityReason,
+  Value<String?> macroProfile,
+  Value<bool> isTimeEstimated,
   Value<bool> isFavorite,
   Value<double?> extractionConfidence,
   Value<DateTime> createdAt,
@@ -3776,6 +4059,26 @@ class $$RecipesTableFilterComposer
 
   ColumnFilters<String> get nutritionConfidence => $composableBuilder(
     column: $table.nutritionConfidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get primaryBadge => $composableBuilder(
+    column: $table.primaryBadge,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get suitabilityReason => $composableBuilder(
+    column: $table.suitabilityReason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get macroProfile => $composableBuilder(
+    column: $table.macroProfile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isTimeEstimated => $composableBuilder(
+    column: $table.isTimeEstimated,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4004,6 +4307,26 @@ class $$RecipesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get primaryBadge => $composableBuilder(
+    column: $table.primaryBadge,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get suitabilityReason => $composableBuilder(
+    column: $table.suitabilityReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get macroProfile => $composableBuilder(
+    column: $table.macroProfile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isTimeEstimated => $composableBuilder(
+    column: $table.isTimeEstimated,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isFavorite => $composableBuilder(
     column: $table.isFavorite,
     builder: (column) => ColumnOrderings(column),
@@ -4116,6 +4439,26 @@ class $$RecipesTableAnnotationComposer
 
   GeneratedColumn<String> get nutritionConfidence => $composableBuilder(
     column: $table.nutritionConfidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get primaryBadge => $composableBuilder(
+    column: $table.primaryBadge,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get suitabilityReason => $composableBuilder(
+    column: $table.suitabilityReason,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get macroProfile => $composableBuilder(
+    column: $table.macroProfile,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isTimeEstimated => $composableBuilder(
+    column: $table.isTimeEstimated,
     builder: (column) => column,
   );
 
@@ -4288,6 +4631,10 @@ class $$RecipesTableTableManager
                 Value<double?> fatGrams = const Value.absent(),
                 Value<String?> nutritionMethod = const Value.absent(),
                 Value<String?> nutritionConfidence = const Value.absent(),
+                Value<String?> primaryBadge = const Value.absent(),
+                Value<String?> suitabilityReason = const Value.absent(),
+                Value<String?> macroProfile = const Value.absent(),
+                Value<bool> isTimeEstimated = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
                 Value<double?> extractionConfidence = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -4313,6 +4660,10 @@ class $$RecipesTableTableManager
                 fatGrams: fatGrams,
                 nutritionMethod: nutritionMethod,
                 nutritionConfidence: nutritionConfidence,
+                primaryBadge: primaryBadge,
+                suitabilityReason: suitabilityReason,
+                macroProfile: macroProfile,
+                isTimeEstimated: isTimeEstimated,
                 isFavorite: isFavorite,
                 extractionConfidence: extractionConfidence,
                 createdAt: createdAt,
@@ -4340,6 +4691,10 @@ class $$RecipesTableTableManager
                 Value<double?> fatGrams = const Value.absent(),
                 Value<String?> nutritionMethod = const Value.absent(),
                 Value<String?> nutritionConfidence = const Value.absent(),
+                Value<String?> primaryBadge = const Value.absent(),
+                Value<String?> suitabilityReason = const Value.absent(),
+                Value<String?> macroProfile = const Value.absent(),
+                Value<bool> isTimeEstimated = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
                 Value<double?> extractionConfidence = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -4365,6 +4720,10 @@ class $$RecipesTableTableManager
                 fatGrams: fatGrams,
                 nutritionMethod: nutritionMethod,
                 nutritionConfidence: nutritionConfidence,
+                primaryBadge: primaryBadge,
+                suitabilityReason: suitabilityReason,
+                macroProfile: macroProfile,
+                isTimeEstimated: isTimeEstimated,
                 isFavorite: isFavorite,
                 extractionConfidence: extractionConfidence,
                 createdAt: createdAt,
@@ -4517,6 +4876,7 @@ typedef $$IngredientsTableCreateCompanionBuilder =
       Value<String?> unit,
       Value<String?> notes,
       Value<bool> isOptional,
+      Value<bool> isEstimated,
       Value<int> sortOrder,
       Value<int> rowid,
     });
@@ -4529,6 +4889,7 @@ typedef $$IngredientsTableUpdateCompanionBuilder =
       Value<String?> unit,
       Value<String?> notes,
       Value<bool> isOptional,
+      Value<bool> isEstimated,
       Value<int> sortOrder,
       Value<int> rowid,
     });
@@ -4591,6 +4952,11 @@ class $$IngredientsTableFilterComposer
 
   ColumnFilters<bool> get isOptional => $composableBuilder(
     column: $table.isOptional,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isEstimated => $composableBuilder(
+    column: $table.isEstimated,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4662,6 +5028,11 @@ class $$IngredientsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isEstimated => $composableBuilder(
+    column: $table.isEstimated,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
@@ -4717,6 +5088,11 @@ class $$IngredientsTableAnnotationComposer
 
   GeneratedColumn<bool> get isOptional => $composableBuilder(
     column: $table.isOptional,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isEstimated => $composableBuilder(
+    column: $table.isEstimated,
     builder: (column) => column,
   );
 
@@ -4782,6 +5158,7 @@ class $$IngredientsTableTableManager
                 Value<String?> unit = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<bool> isOptional = const Value.absent(),
+                Value<bool> isEstimated = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => IngredientsCompanion(
@@ -4792,6 +5169,7 @@ class $$IngredientsTableTableManager
                 unit: unit,
                 notes: notes,
                 isOptional: isOptional,
+                isEstimated: isEstimated,
                 sortOrder: sortOrder,
                 rowid: rowid,
               ),
@@ -4804,6 +5182,7 @@ class $$IngredientsTableTableManager
                 Value<String?> unit = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<bool> isOptional = const Value.absent(),
+                Value<bool> isEstimated = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => IngredientsCompanion.insert(
@@ -4814,6 +5193,7 @@ class $$IngredientsTableTableManager
                 unit: unit,
                 notes: notes,
                 isOptional: isOptional,
+                isEstimated: isEstimated,
                 sortOrder: sortOrder,
                 rowid: rowid,
               ),

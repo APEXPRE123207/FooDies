@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
       : super(e ?? driftDatabase(name: 'foodies_db'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -27,7 +27,13 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
         },
         onUpgrade: (m, from, to) async {
-          // Future migrations when schema upgrades
+          if (from < 2) {
+            await m.addColumn(recipes, recipes.primaryBadge);
+            await m.addColumn(recipes, recipes.suitabilityReason);
+            await m.addColumn(recipes, recipes.macroProfile);
+            await m.addColumn(recipes, recipes.isTimeEstimated);
+            await m.addColumn(ingredients, ingredients.isEstimated);
+          }
         },
       );
 }

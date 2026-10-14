@@ -324,7 +324,7 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.auto_awesome, size: 20),
-              label: Text(_isSubmitting ? 'Starting...' : 'Extract & Save Recipe'),
+              label: Text(_isSubmitting ? 'Bypassing gatekeeping...' : 'Extract & Save Recipe'),
             ),
           ),
           const SizedBox(height: 12),

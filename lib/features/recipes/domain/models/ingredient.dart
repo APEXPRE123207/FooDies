@@ -6,6 +6,7 @@ class Ingredient {
   final String? unit;
   final String? notes;
   final bool isOptional;
+  final bool isEstimated;
   final int sortOrder;
 
   const Ingredient({
@@ -16,6 +17,7 @@ class Ingredient {
     this.unit,
     this.notes,
     this.isOptional = false,
+    this.isEstimated = false,
     this.sortOrder = 0,
   });
 
@@ -30,24 +32,48 @@ class Ingredient {
 
   String get displayQuantity {
     if (quantity == null) return '';
+    final prefix = isEstimated ? '~' : '';
     if (quantity! % 1 == 0) {
-      return quantity!.toInt().toString();
+      return '$prefix${quantity!.toInt()}';
     }
     // Simple fractions for clean cooking view
     final whole = quantity!.toInt();
     final remainder = quantity! - whole;
     if ((remainder - 0.5).abs() < 0.05) {
-      return whole > 0 ? '$whole ½' : '½';
+      return '$prefix${whole > 0 ? '$whole ½' : '½'}';
     } else if ((remainder - 0.25).abs() < 0.05) {
-      return whole > 0 ? '$whole ¼' : '¼';
+      return '$prefix${whole > 0 ? '$whole ¼' : '¼'}';
     } else if ((remainder - 0.75).abs() < 0.05) {
-      return whole > 0 ? '$whole ¾' : '¾';
+      return '$prefix${whole > 0 ? '$whole ¾' : '¾'}';
     } else if ((remainder - 0.33).abs() < 0.05) {
-      return whole > 0 ? '$whole ⅓' : '⅓';
+      return '$prefix${whole > 0 ? '$whole ⅓' : '⅓'}';
     } else if ((remainder - 0.67).abs() < 0.05) {
-      return whole > 0 ? '$whole ⅔' : '⅔';
+      return '$prefix${whole > 0 ? '$whole ⅔' : '⅔'}';
     }
-    return quantity!.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '');
+    return '$prefix${quantity!.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')}';
+  }
+
+  /// Checks if this ingredient has a saved alternative in its notes (e.g. "or Firm Tofu")
+  bool get hasAlternative {
+    if (notes == null || notes!.trim().isEmpty) return false;
+    return RegExp(r'\bor\s+[^,)]+', caseSensitive: false).hasMatch(notes!);
+  }
+
+  /// Extracts the saved alternative name if present (e.g. "Firm Tofu")
+  String? get alternativeName {
+    if (notes == null) return null;
+    final match = RegExp(r'\bor\s+([^,)]+)', caseSensitive: false).firstMatch(notes!);
+    return match?.group(1)?.trim();
+  }
+
+  /// Returns the base notes excluding any bracketed alternative
+  String? get baseNotes {
+    if (notes == null) return null;
+    final cleaned = notes!
+        .replaceAll(RegExp(r'\s*\(?or\s+[^)]+\)?', caseSensitive: false), '')
+        .replaceAll(RegExp(r',\s*$'), '')
+        .trim();
+    return cleaned.isEmpty ? null : cleaned;
   }
 
   String get fullDisplayText {
@@ -69,6 +95,7 @@ class Ingredient {
     String? unit,
     String? notes,
     bool? isOptional,
+    bool? isEstimated,
     int? sortOrder,
   }) {
     return Ingredient(
@@ -79,6 +106,7 @@ class Ingredient {
       unit: unit ?? this.unit,
       notes: notes ?? this.notes,
       isOptional: isOptional ?? this.isOptional,
+      isEstimated: isEstimated ?? this.isEstimated,
       sortOrder: sortOrder ?? this.sortOrder,
     );
   }
@@ -91,6 +119,7 @@ class Ingredient {
         'unit': unit,
         'notes': notes,
         'isOptional': isOptional,
+        'isEstimated': isEstimated,
         'sortOrder': sortOrder,
       };
 
@@ -103,6 +132,7 @@ class Ingredient {
       unit: json['unit'] as String?,
       notes: json['notes'] as String?,
       isOptional: json['isOptional'] as bool? ?? false,
+      isEstimated: json['isEstimated'] as bool? ?? false,
       sortOrder: json['sortOrder'] as int? ?? 0,
     );
   }

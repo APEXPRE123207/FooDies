@@ -159,5 +159,106 @@ void main() {
       await repo.deleteRecipe('rec_104');
       expect(await repo.getRecipeById('rec_104'), isNull);
     });
+
+    test('stores and retrieves rich AI metadata (primaryBadge, suitabilityReason, macroProfile, isTimeEstimated, isEstimated)', () async {
+      final now = DateTime.now();
+      final recipe = Recipe(
+        id: 'rec_rich_105',
+        title: 'High-Protein Paneer Stir Fry',
+        description: 'Crispy paneer cubes with bell peppers and black pepper',
+        totalTimeMinutes: 20,
+        isTimeEstimated: true,
+        primaryBadge: '💪 Post-Workout Recovery',
+        suitabilityReason: 'Rich in slow-digesting casein protein from paneer, ideal for overnight recovery.',
+        macroProfile: 'High-Protein',
+        createdAt: now,
+        updatedAt: now,
+        ingredients: const [
+          Ingredient(
+            id: 'ing_r1',
+            recipeId: 'rec_rich_105',
+            name: 'paneer',
+            quantity: 200,
+            unit: 'g',
+            isEstimated: false,
+          ),
+          Ingredient(
+            id: 'ing_r2',
+            recipeId: 'rec_rich_105',
+            name: 'soy sauce',
+            quantity: 1,
+            unit: 'tbsp',
+            isEstimated: true,
+          ),
+        ],
+        steps: const [
+          RecipeStep(
+            id: 'stp_r1',
+            recipeId: 'rec_rich_105',
+            stepNumber: 1,
+            instruction: 'Sear paneer at 200°C for 5 mins.',
+            durationMinutes: 5,
+          ),
+        ],
+      );
+
+      await repo.insertRecipe(recipe);
+
+      final retrieved = await repo.getRecipeById('rec_rich_105');
+      expect(retrieved, isNotNull);
+      expect(retrieved!.primaryBadge, equals('💪 Post-Workout Recovery'));
+      expect(retrieved.suitabilityReason, contains('slow-digesting casein protein'));
+      expect(retrieved.macroProfile, equals('High-Protein'));
+      expect(retrieved.isTimeEstimated, isTrue);
+      expect(retrieved.formattedTime, equals('~20 mins'));
+
+      final ing1 = retrieved.ingredients.firstWhere((i) => i.id == 'ing_r1');
+      expect(ing1.isEstimated, isFalse);
+      expect(ing1.displayQuantity, equals('200'));
+
+      final ing2 = retrieved.ingredients.firstWhere((i) => i.id == 'ing_r2');
+      expect(ing2.isEstimated, isTrue);
+      expect(ing2.displayQuantity, equals('~1'));
+
+      // Test swapIngredient
+      await repo.swapIngredient(
+        ingredientId: 'ing_r1',
+        newName: 'Firm Tofu',
+        newNotes: 'vegan alternative',
+      );
+
+      final afterSwap = await repo.getRecipeById('rec_rich_105');
+      final swappedIng = afterSwap!.ingredients.firstWhere((i) => i.id == 'ing_r1');
+      expect(swappedIng.name, equals('Firm Tofu'));
+      expect(swappedIng.notes, equals('vegan alternative'));
+      expect(swappedIng.isEstimated, isTrue);
+
+      // Test zero-destruction bracketed alternative: saves in brackets without overwriting original name
+      await repo.saveIngredientAlternative(
+        recipeId: 'rec_rich_105',
+        ingredientId: 'ing_r2',
+        alternativeName: 'Tamari',
+      );
+
+      final afterAlt = await repo.getRecipeById('rec_rich_105');
+      final altIng = afterAlt!.ingredients.firstWhere((i) => i.id == 'ing_r2');
+      // Original ingredient name MUST BE PRESERVED (zero destruction)
+      expect(altIng.name, equals('soy sauce'));
+      expect(altIng.hasAlternative, isTrue);
+      expect(altIng.alternativeName, equals('Tamari'));
+      expect(altIng.fullDisplayText, contains('soy sauce (or Tamari)'));
+
+      // Test removing bracketed alternative reverts back to original
+      await repo.removeIngredientAlternative(
+        recipeId: 'rec_rich_105',
+        ingredientId: 'ing_r2',
+      );
+
+      final afterRevert = await repo.getRecipeById('rec_rich_105');
+      final revertedIng = afterRevert!.ingredients.firstWhere((i) => i.id == 'ing_r2');
+      expect(revertedIng.name, equals('soy sauce'));
+      expect(revertedIng.hasAlternative, isFalse);
+      expect(revertedIng.alternativeName, isNull);
+    });
   });
 }

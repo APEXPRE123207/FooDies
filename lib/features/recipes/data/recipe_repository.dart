@@ -93,6 +93,7 @@ class RecipeRepository {
               prepTimeMinutes: Value(recipe.prepTimeMinutes),
               cookTimeMinutes: Value(recipe.cookTimeMinutes),
               totalTimeMinutes: Value(recipe.totalTimeMinutes),
+              isTimeEstimated: Value(recipe.isTimeEstimated),
               servingCount: Value(recipe.servingCount),
               caloriesPerServing: Value(recipe.nutrition.calories),
               proteinGrams: Value(recipe.nutrition.proteinGrams),
@@ -100,6 +101,9 @@ class RecipeRepository {
               fatGrams: Value(recipe.nutrition.fatGrams),
               nutritionMethod: Value(recipe.nutrition.method),
               nutritionConfidence: Value(recipe.nutrition.confidence),
+              primaryBadge: Value(recipe.primaryBadge),
+              suitabilityReason: Value(recipe.suitabilityReason),
+              macroProfile: Value(recipe.macroProfile),
               isFavorite: Value(recipe.isFavorite),
               extractionConfidence: Value(recipe.extractionConfidence),
               createdAt: Value(recipe.createdAt),
@@ -120,6 +124,7 @@ class RecipeRepository {
                 unit: Value(ing.unit),
                 notes: Value(ing.notes),
                 isOptional: Value(ing.isOptional),
+                isEstimated: Value(ing.isEstimated),
                 sortOrder: Value(i),
               ),
             );
@@ -194,6 +199,7 @@ class RecipeRepository {
           prepTimeMinutes: Value(recipe.prepTimeMinutes),
           cookTimeMinutes: Value(recipe.cookTimeMinutes),
           totalTimeMinutes: Value(recipe.totalTimeMinutes),
+          isTimeEstimated: Value(recipe.isTimeEstimated),
           servingCount: Value(recipe.servingCount),
           caloriesPerServing: Value(recipe.nutrition.calories),
           proteinGrams: Value(recipe.nutrition.proteinGrams),
@@ -201,6 +207,9 @@ class RecipeRepository {
           fatGrams: Value(recipe.nutrition.fatGrams),
           nutritionMethod: Value(recipe.nutrition.method),
           nutritionConfidence: Value(recipe.nutrition.confidence),
+          primaryBadge: Value(recipe.primaryBadge),
+          suitabilityReason: Value(recipe.suitabilityReason),
+          macroProfile: Value(recipe.macroProfile),
           isFavorite: Value(recipe.isFavorite),
           extractionConfidence: Value(recipe.extractionConfidence),
           updatedAt: Value(now),
@@ -222,6 +231,7 @@ class RecipeRepository {
                 unit: Value(ing.unit),
                 notes: Value(ing.notes),
                 isOptional: Value(ing.isOptional),
+                isEstimated: Value(ing.isEstimated),
                 sortOrder: Value(i),
               ),
             );
@@ -333,6 +343,97 @@ class RecipeRepository {
     }).toList();
   }
 
+  /// Swap an ingredient with an alternative (overwriting)
+  Future<void> swapIngredient({
+    required String ingredientId,
+    required String newName,
+    double? newQuantity,
+    String? newUnit,
+    String? newNotes,
+  }) async {
+    await (_database.update(_database.ingredients)..where((i) => i.id.equals(ingredientId)))
+        .write(
+      db.IngredientsCompanion(
+        name: Value(newName),
+        quantity: newQuantity != null ? Value(newQuantity) : const Value.absent(),
+        unit: newUnit != null ? Value(newUnit) : const Value.absent(),
+        notes: newNotes != null ? Value(newNotes) : const Value.absent(),
+        isEstimated: const Value(true),
+      ),
+    );
+  }
+
+  /// Keep an alternative swap in brackets without modifying the original ingredient name or quantity.
+  /// E.g. original name remains "Paneer", notes becomes "or Firm Tofu", displaying "200 g Paneer (or Firm Tofu)".
+  Future<void> saveIngredientAlternative({
+    required String recipeId,
+    required String ingredientId,
+    required String alternativeName,
+  }) async {
+    final current = await (_database.select(_database.ingredients)
+          ..where((i) => i.id.equals(ingredientId)))
+        .getSingleOrNull();
+    if (current == null) return;
+
+    // Clean any previous bracketed "or ..." from notes
+    String baseNotes = (current.notes ?? '').trim();
+    baseNotes = baseNotes
+        .replaceAll(RegExp(r'\s*\(?or\s+[^)]+\)?', caseSensitive: false), '')
+        .replaceAll(RegExp(r',\s*$'), '')
+        .trim();
+
+    final newNotes = baseNotes.isEmpty
+        ? 'or $alternativeName'
+        : '$baseNotes, or $alternativeName';
+
+    await (_database.update(_database.ingredients)..where((i) => i.id.equals(ingredientId)))
+        .write(
+      db.IngredientsCompanion(
+        notes: Value(newNotes),
+      ),
+    );
+
+    // Touch the parent recipe's updatedAt so reactive Stream subscribers immediately re-emit
+    await (_database.update(_database.recipes)..where((r) => r.id.equals(recipeId)))
+        .write(
+      db.RecipesCompanion(
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// Remove a saved bracketed alternative and restore the original ingredient's base notes
+  Future<void> removeIngredientAlternative({
+    required String recipeId,
+    required String ingredientId,
+  }) async {
+    final current = await (_database.select(_database.ingredients)
+          ..where((i) => i.id.equals(ingredientId)))
+        .getSingleOrNull();
+    if (current == null) return;
+
+    String baseNotes = (current.notes ?? '').trim();
+    baseNotes = baseNotes
+        .replaceAll(RegExp(r'\s*\(?or\s+[^)]+\)?', caseSensitive: false), '')
+        .replaceAll(RegExp(r',\s*$'), '')
+        .trim();
+
+    await (_database.update(_database.ingredients)..where((i) => i.id.equals(ingredientId)))
+        .write(
+      db.IngredientsCompanion(
+        notes: Value(baseNotes.isEmpty ? null : baseNotes),
+      ),
+    );
+
+    // Touch parent recipe updatedAt to re-emit
+    await (_database.update(_database.recipes)..where((r) => r.id.equals(recipeId)))
+        .write(
+      db.RecipesCompanion(
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   /// Populate full Recipe domain entity with ingredients, steps, and tags
   Future<Recipe> _populateRecipeDetails(db.Recipe row) async {
     // 1. Ingredients
@@ -350,6 +451,7 @@ class RecipeRepository {
         unit: i.unit,
         notes: i.notes,
         isOptional: i.isOptional,
+        isEstimated: i.isEstimated,
         sortOrder: i.sortOrder,
       );
     }).toList();
@@ -401,6 +503,7 @@ class RecipeRepository {
       prepTimeMinutes: row.prepTimeMinutes,
       cookTimeMinutes: row.cookTimeMinutes,
       totalTimeMinutes: row.totalTimeMinutes,
+      isTimeEstimated: row.isTimeEstimated,
       servingCount: row.servingCount,
       nutrition: NutritionInfo(
         calories: row.caloriesPerServing,
@@ -410,6 +513,9 @@ class RecipeRepository {
         method: row.nutritionMethod ?? 'unavailable',
         confidence: row.nutritionConfidence,
       ),
+      primaryBadge: row.primaryBadge,
+      suitabilityReason: row.suitabilityReason,
+      macroProfile: row.macroProfile,
       isFavorite: row.isFavorite,
       extractionConfidence: row.extractionConfidence,
       createdAt: row.createdAt,

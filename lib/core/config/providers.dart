@@ -8,6 +8,7 @@ import '../../features/extraction/recipe_structurer.dart';
 import '../../features/importing/data/import_pipeline_coordinator.dart';
 import '../../features/importing/data/import_repository.dart';
 import '../../features/importing/domain/import_job.dart';
+import '../../features/recipes/data/ai_substitution_service.dart';
 import '../../features/recipes/data/recipe_repository.dart';
 import '../../features/recipes/domain/models/recipe.dart';
 
@@ -34,6 +35,11 @@ final importRepositoryProvider = Provider<ImportRepository>((ref) {
 final ollamaClientProvider = Provider<OllamaClient>((ref) {
   final storage = ref.watch(secureStorageProvider);
   return OllamaClient(storage: storage);
+});
+
+final aiSubstitutionServiceProvider = Provider<AiSubstitutionService>((ref) {
+  final client = ref.watch(ollamaClientProvider);
+  return AiSubstitutionService(ollamaClient: client);
 });
 
 final contentExtractorProvider = Provider<ContentExtractor>((ref) {

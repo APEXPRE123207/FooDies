@@ -16,8 +16,12 @@ class Recipe {
   final int? prepTimeMinutes;
   final int? cookTimeMinutes;
   final int? totalTimeMinutes;
+  final bool isTimeEstimated;
   final int servingCount;
   final NutritionInfo nutrition;
+  final String? primaryBadge;
+  final String? suitabilityReason;
+  final String? macroProfile;
   final bool isFavorite;
   final double? extractionConfidence;
   final DateTime createdAt;
@@ -40,8 +44,12 @@ class Recipe {
     this.prepTimeMinutes,
     this.cookTimeMinutes,
     this.totalTimeMinutes,
+    this.isTimeEstimated = false,
     this.servingCount = 2,
     this.nutrition = const NutritionInfo(),
+    this.primaryBadge,
+    this.suitabilityReason,
+    this.macroProfile,
     this.isFavorite = false,
     this.extractionConfidence,
     required this.createdAt,
@@ -63,11 +71,12 @@ class Recipe {
 
   String get formattedTime {
     final time = effectiveTotalTime;
+    final prefix = isTimeEstimated ? '~' : '';
     if (time == null || time <= 0) return 'Quick cook';
-    if (time < 60) return '$time mins';
+    if (time < 60) return '$prefix$time mins';
     final hours = time ~/ 60;
     final mins = time % 60;
-    return mins > 0 ? '$hours hr $mins m' : '$hours hr';
+    return mins > 0 ? '$prefix$hours hr $mins m' : '$prefix$hours hr';
   }
 
   List<Ingredient> getScaledIngredients(int targetServings) {
@@ -91,8 +100,12 @@ class Recipe {
     int? prepTimeMinutes,
     int? cookTimeMinutes,
     int? totalTimeMinutes,
+    bool? isTimeEstimated,
     int? servingCount,
     NutritionInfo? nutrition,
+    String? primaryBadge,
+    String? suitabilityReason,
+    String? macroProfile,
     bool? isFavorite,
     double? extractionConfidence,
     DateTime? createdAt,
@@ -114,8 +127,12 @@ class Recipe {
       prepTimeMinutes: prepTimeMinutes ?? this.prepTimeMinutes,
       cookTimeMinutes: cookTimeMinutes ?? this.cookTimeMinutes,
       totalTimeMinutes: totalTimeMinutes ?? this.totalTimeMinutes,
+      isTimeEstimated: isTimeEstimated ?? this.isTimeEstimated,
       servingCount: servingCount ?? this.servingCount,
       nutrition: nutrition ?? this.nutrition,
+      primaryBadge: primaryBadge ?? this.primaryBadge,
+      suitabilityReason: suitabilityReason ?? this.suitabilityReason,
+      macroProfile: macroProfile ?? this.macroProfile,
       isFavorite: isFavorite ?? this.isFavorite,
       extractionConfidence: extractionConfidence ?? this.extractionConfidence,
       createdAt: createdAt ?? this.createdAt,
@@ -139,8 +156,12 @@ class Recipe {
         'prepTimeMinutes': prepTimeMinutes,
         'cookTimeMinutes': cookTimeMinutes,
         'totalTimeMinutes': totalTimeMinutes,
+        'isTimeEstimated': isTimeEstimated,
         'servingCount': servingCount,
         'nutrition': nutrition.toJson(),
+        'primaryBadge': primaryBadge,
+        'suitabilityReason': suitabilityReason,
+        'macroProfile': macroProfile,
         'isFavorite': isFavorite,
         'extractionConfidence': extractionConfidence,
         'createdAt': createdAt.toIso8601String(),
@@ -165,10 +186,14 @@ class Recipe {
       prepTimeMinutes: json['prepTimeMinutes'] as int?,
       cookTimeMinutes: json['cookTimeMinutes'] as int?,
       totalTimeMinutes: json['totalTimeMinutes'] as int?,
+      isTimeEstimated: json['isTimeEstimated'] as bool? ?? false,
       servingCount: json['servingCount'] as int? ?? 2,
       nutrition: json['nutrition'] is Map
           ? NutritionInfo.fromJson(Map<String, dynamic>.from(json['nutrition'] as Map))
           : const NutritionInfo(),
+      primaryBadge: json['primaryBadge'] as String?,
+      suitabilityReason: json['suitabilityReason'] as String?,
+      macroProfile: json['macroProfile'] as String?,
       isFavorite: json['isFavorite'] as bool? ?? false,
       extractionConfidence: (json['extractionConfidence'] as num?)?.toDouble(),
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),

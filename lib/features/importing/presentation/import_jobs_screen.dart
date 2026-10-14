@@ -138,6 +138,28 @@ class ImportJobsScreen extends ConsumerWidget {
               color: AppColors.primary,
               minHeight: 3,
             ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const SizedBox(
+                  width: 10,
+                  height: 10,
+                  child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.primary),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _getPlayfulStatusCopy(job.currentStage),
+                    style: const TextStyle(
+                      color: AppColors.primaryLight,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
           ],
 
@@ -402,5 +424,28 @@ class ImportJobsScreen extends ConsumerWidget {
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${dt.month}/${dt.day}';
+  }
+
+  String _getPlayfulStatusCopy(ImportStage stage) {
+    switch (stage) {
+      case ImportStage.queued:
+        return 'Queueing background worker...';
+      case ImportStage.extracting:
+        return "Bypassing 'Comment for DM' gatekeeping & reading caption...";
+      case ImportStage.transcribing:
+        return 'Reading video subtitle tracks...';
+      case ImportStage.structuring:
+        return 'Structuring ingredients & calculating macro profile...';
+      case ImportStage.ready:
+        return 'Ready in your offline library!';
+      case ImportStage.needs_input:
+        return 'Needs input: paste caption or recipe steps';
+      case ImportStage.retrying:
+        return 'Reconnecting to Ollama Cloud...';
+      case ImportStage.failed:
+        return 'Import failed';
+      case ImportStage.cancelled:
+        return 'Import cancelled';
+    }
   }
 }

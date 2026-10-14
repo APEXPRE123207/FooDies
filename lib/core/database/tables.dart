@@ -20,6 +20,10 @@ class Recipes extends Table {
   RealColumn get fatGrams => real().nullable()();
   TextColumn get nutritionMethod => text().nullable()(); // 'creator', 'estimated', 'unavailable'
   TextColumn get nutritionConfidence => text().nullable()(); // 'high', 'medium', 'low'
+  TextColumn get primaryBadge => text().nullable()(); // e.g. "Post-Workout Recovery", "Quick 15-Min"
+  TextColumn get suitabilityReason => text().nullable()(); // 1-sentence AI nutritional insight
+  TextColumn get macroProfile => text().nullable()(); // "High-Protein", "Balanced", "Keto", etc.
+  BoolColumn get isTimeEstimated => boolean().withDefault(const Constant(false))();
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   RealColumn get extractionConfidence => real().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -37,6 +41,7 @@ class Ingredients extends Table {
   TextColumn get unit => text().nullable()();
   TextColumn get notes => text().nullable()();
   BoolColumn get isOptional => boolean().withDefault(const Constant(false))();
+  BoolColumn get isEstimated => boolean().withDefault(const Constant(false))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 
   @override
