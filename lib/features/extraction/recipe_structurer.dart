@@ -187,10 +187,8 @@ Your objective is to synthesize both sources into clean, reliable, kitchen-ready
    - Treat the CAPTION and AUDIO TRANSCRIPT as two halves of a single dataset. Cross-reference both to capture every ingredient, quantity, and tip.
    - "COMMENT FOR DM" RECOVERY: Creators frequently gatekeep the written caption (e.g., "Comment PROTEIN and I'll DM you the recipe!") while speaking the actual recipe in the video audio. When the caption is promotional or lacks details, rely 100% on the AUDIO TRANSCRIPT to extract the recipe.
    - TRANSCRIPT TYPO CORRECTION: Audio transcripts are auto-generated and often contain phonetic speech-to-text errors (e.g., "paneer" -> "pioneer", "besan" -> "basin", "ghee" -> "gee", "soy chunks" -> "saw chunks", "1 tsp cumin" -> "1,000 human"). Use culinary context to automatically correct phonetic transcription errors into proper ingredient names and cooking terms.
-   - TRUE INVALID FALLBACK & ZERO-HALLUCINATION POLICY:
-     * If NEITHER the caption NOR the audio transcript provides recipe ingredients or preparation instructions (e.g., the caption is promotional like "Comment RECIPE" or "Watch till end" AND no audio transcript was captured), DO NOT INVENT OR HALLUCINATE A RECIPE!
-     * Under NO circumstances should you fabricate cooking steps or ingredients that were neither written nor spoken.
-     * In such cases, you MUST set `"is_valid_recipe": false`, `"ingredients": []`, and `"instructions": []`.
+   - PARTIAL TRANSCRIPT RECONSTRUCTION: If the caption is gatekept AND the transcript only casually mentions ingredients without exact quantities or formal steps (e.g., "I just blended oats, whey, banana, and milk"), DO NOT fail. Extract the mentioned ingredients, infer logical culinary quantities (`"is_estimated": true`), and write clear preparation steps.
+   - TRUE INVALID FALLBACK: ONLY set `"is_valid_recipe": false` if BOTH the caption AND the audio transcript contain zero culinary information (e.g., the caption is "Comment RECIPE" AND the transcript is just music lyrics or non-food chatter).
 
 2. Dish Title & Description:
    - Extract the dish title faithfully in its original language, stripping away promotional clutter, emojis, and clickbait (e.g., convert "OMG Best Ever 10-Min Garlic Noodles!! 🔥🍜" to "Garlic Noodles").

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:foodies/core/config/providers.dart';
-import 'package:foodies/features/extraction/local_whisper_transcription_service.dart';
 import 'package:foodies/features/recipes/domain/models/ingredient.dart';
 import 'package:foodies/features/recipes/domain/models/nutrition_info.dart';
 import 'package:foodies/features/recipes/domain/models/recipe.dart';
@@ -164,13 +163,6 @@ void main() {
 
       expect(find.byType(RingCarousel), findsOneWidget);
       expect(find.byType(PageView), findsOneWidget);
-    });
-  });
-
-  group('LocalWhisperTranscriptionService Unit Tests', () {
-    test('instantiates and provides method channel contract', () {
-      final service = LocalWhisperTranscriptionService();
-      expect(service, isNotNull);
     });
   });
 }

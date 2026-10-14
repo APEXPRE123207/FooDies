@@ -4,7 +4,6 @@ import 'package:foodies/core/networking/ollama_client.dart';
 import 'package:foodies/core/utils/logger.dart';
 import 'package:foodies/core/utils/url_parser.dart';
 import 'package:foodies/features/extraction/content_extractor.dart';
-import 'package:foodies/features/extraction/local_whisper_transcription_service.dart';
 import 'package:foodies/features/extraction/recipe_structurer.dart';
 import 'package:foodies/features/recipes/data/recipe_repository.dart';
 import 'package:foodies/features/importing/domain/import_job.dart';
@@ -15,7 +14,6 @@ class ImportPipelineCoordinator {
   final RecipeRepository _recipeRepo;
   final ContentExtractor _extractor;
   final RecipeStructurer _structurer;
-  final LocalWhisperTranscriptionService? _whisperService;
 
   final Map<String, Future<void>> _inFlightFutures = {};
 
@@ -24,12 +22,10 @@ class ImportPipelineCoordinator {
     required RecipeRepository recipeRepo,
     required ContentExtractor extractor,
     required RecipeStructurer structurer,
-    LocalWhisperTranscriptionService? whisperService,
   })  : _importRepo = importRepo,
         _recipeRepo = recipeRepo,
         _extractor = extractor,
-        _structurer = structurer,
-        _whisperService = whisperService;
+        _structurer = structurer;
 
   /// Start a new import pipeline from a URL or shared text
   Future<ImportJobEntity> startImport({
@@ -120,25 +116,6 @@ class ImportPipelineCoordinator {
         thumbnailUrl = result.thumbnailUrl;
         if (result.transcript != null && result.transcript!.trim().isNotEmpty) {
           transcript = result.transcript!.trim();
-        }
-
-        // Run on-device local Whisper transcription if videoUrl is available and transcript is missing
-        final videoUrl = result.videoUrl;
-        final whisperService = _whisperService;
-        if ((transcript == null || transcript.trim().isEmpty) &&
-            videoUrl != null &&
-            videoUrl.isNotEmpty &&
-            whisperService != null) {
-          try {
-            AppLogger.info('Extracting audio track & transcribing with on-device Whisper: $videoUrl');
-            final whisperTranscript = await whisperService.transcribeReelAudio(videoUrl);
-            if (whisperTranscript != null && whisperTranscript.trim().isNotEmpty) {
-              transcript = whisperTranscript.trim();
-              AppLogger.info('On-device Whisper transcription succeeded: ${transcript.length} chars');
-            }
-          } catch (err) {
-            AppLogger.warn('On-device Whisper transcription failed or skipped: $err');
-          }
         }
 
         // If extraction is blocked by platform (e.g. login wall) and no caption or transcript available

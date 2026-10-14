@@ -182,7 +182,7 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
             onChanged: _onUrlChanged,
             decoration: InputDecoration(
               hintText: 'https://www.instagram.com/reel/...',
-              prefixIcon: const Icon(Icons.search, color: AppColors.textMuted),
+              prefixIcon: const Icon(Icons.link_rounded, color: AppColors.primaryLight),
               suffixIcon: IconButton(
                 icon: const Icon(Icons.content_paste, color: AppColors.primaryLight),
                 tooltip: 'Paste from clipboard',

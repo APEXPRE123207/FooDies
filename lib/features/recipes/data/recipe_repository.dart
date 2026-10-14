@@ -313,7 +313,7 @@ class RecipeRepository {
     AppLogger.info('Deleted recipe $recipeId');
   }
 
-  /// Search recipes with filters
+  /// Search recipes with filters and comprehensive multi-token matching
   Future<List<Recipe>> searchRecipes({
     String? query,
     List<String>? tagNames,
@@ -328,16 +328,46 @@ class RecipeRepository {
         if (time == null || time > maxCookTime) return false;
       }
       if (tagNames != null && tagNames.isNotEmpty) {
-        final recipeTagNames = r.tags.map((t) => t.name.toLowerCase()).toSet();
-        final matchesTag = tagNames.any((t) => recipeTagNames.contains(t.toLowerCase()));
+        final recipeTagNames = r.tags.map((t) => t.name.toLowerCase().trim()).toSet();
+        final matchesTag = tagNames.any((t) => recipeTagNames.contains(t.toLowerCase().trim()));
         if (!matchesTag) return false;
       }
       if (query != null && query.trim().isNotEmpty) {
-        final q = query.toLowerCase().trim();
-        final matchesTitle = r.title.toLowerCase().contains(q);
-        final matchesDesc = r.description?.toLowerCase().contains(q) ?? false;
-        final matchesIngredient = r.ingredients.any((i) => i.name.toLowerCase().contains(q));
-        if (!matchesTitle && !matchesDesc && !matchesIngredient) return false;
+        final clean = query.trim().toLowerCase();
+        final tokens = clean.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+        if (tokens.isEmpty) return true;
+
+        final searchableStrings = <String>[
+          r.title.toLowerCase(),
+          if (r.description != null) r.description!.toLowerCase(),
+          if (r.sourceCaption != null) r.sourceCaption!.toLowerCase(),
+          if (r.primaryBadge != null) r.primaryBadge!.toLowerCase(),
+          if (r.macroProfile != null) r.macroProfile!.toLowerCase(),
+          if (r.suitabilityReason != null) r.suitabilityReason!.toLowerCase(),
+          if (r.sourcePlatform != null) r.sourcePlatform!.toLowerCase(),
+          ...r.ingredients.map((i) => i.name.toLowerCase()),
+          ...r.ingredients.map((i) => i.notes?.toLowerCase() ?? ''),
+          ...r.tags.map((t) => t.name.toLowerCase()),
+          ...r.tags.map((t) => t.category.toLowerCase()),
+          ...r.steps.map((s) => s.instruction.toLowerCase()),
+        ];
+
+        final matchesAllTokens = tokens.every((token) {
+          final rawToken = token.startsWith('#') ? token.substring(1) : token;
+          if (rawToken.isEmpty) return true;
+          final alphaNumeric = rawToken.replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+          return searchableStrings.any((field) {
+            if (field.contains(rawToken)) return true;
+            if (alphaNumeric.isNotEmpty &&
+                field.replaceAll(RegExp(r'[^a-z0-9]'), '').contains(alphaNumeric)) {
+              return true;
+            }
+            return false;
+          });
+        });
+
+        if (!matchesAllTokens) return false;
       }
       return true;
     }).toList();
