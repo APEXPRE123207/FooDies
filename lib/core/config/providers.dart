@@ -91,3 +91,4 @@ final isApiKeyConfiguredProvider = FutureProvider<bool>((ref) async {
   final key = await storage.getApiKey();
   return key != null && key.trim().isNotEmpty;
 });
+

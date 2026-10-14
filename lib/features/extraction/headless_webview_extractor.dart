@@ -165,14 +165,14 @@ class HeadlessWebviewExtractor {
     }
 
     // 4. Check OpenGraph / Twitter meta tags
-    if (!extractedCaption) {
-      var ogDesc = document.querySelector('meta[property="og:description"]');
-      var twDesc = document.querySelector('meta[name="twitter:description"]');
-      var stdDesc = document.querySelector('meta[name="description"]');
-      var ogTitle = document.querySelector('meta[property="og:title"]');
-      var ogImg = document.querySelector('meta[property="og:image"]');
-      var ogVideo = document.querySelector('meta[property="og:video"], meta[property="og:video:secure_url"]');
+    var ogDesc = document.querySelector('meta[property="og:description"]');
+    var twDesc = document.querySelector('meta[name="twitter:description"]');
+    var stdDesc = document.querySelector('meta[name="description"]');
+    var ogTitle = document.querySelector('meta[property="og:title"]');
+    var ogImg = document.querySelector('meta[property="og:image"]');
+    var ogVideo = document.querySelector('meta[property="og:video"], meta[property="og:video:url"], meta[property="og:video:secure_url"], meta[name="twitter:player:stream"]');
 
+    if (!extractedCaption) {
       var desc = (ogDesc ? ogDesc.content : null) || 
                  (twDesc ? twDesc.content : null) || 
                  (stdDesc ? stdDesc.content : null);
@@ -181,12 +181,32 @@ class HeadlessWebviewExtractor {
         extractedCaption = desc.trim();
         extractedTitle = ogTitle ? ogTitle.content : (document.title || null);
         extractedThumbnail = ogImg ? ogImg.content : null;
-        if (ogVideo) extractedVideoUrl = ogVideo.content;
         method = 'meta-tags';
       }
     }
 
-    if (extractedCaption || extractedTranscript) {
+    // 5. Ensure Video URL is captured from meta tags or scripts if not already set
+    if (!extractedVideoUrl && ogVideo && ogVideo.content) {
+      extractedVideoUrl = ogVideo.content;
+    }
+
+    if (!extractedVideoUrl) {
+      try {
+        var allScripts = document.querySelectorAll('script:not([src])');
+        for (var s = 0; s < allScripts.length; s++) {
+          var sc = allScripts[s].innerText || '';
+          if (sc.indexOf('video_url') !== -1 || sc.indexOf('playable_url') !== -1) {
+            var vm = sc.match(/"video_url":\s*"([^"]+)"/) || sc.match(/"playable_url":\s*"([^"]+)"/);
+            if (vm && vm[1]) {
+              extractedVideoUrl = JSON.parse('"' + vm[1] + '"');
+              break;
+            }
+          }
+        }
+      } catch(e) {}
+    }
+
+    if (extractedCaption || extractedTranscript || extractedVideoUrl) {
       return JSON.stringify({
         caption: extractedCaption,
         transcript: extractedTranscript,
@@ -197,7 +217,7 @@ class HeadlessWebviewExtractor {
       });
     }
 
-    return JSON.stringify({ error: 'No caption or transcript found in DOM' });
+    return JSON.stringify({ error: 'No caption, transcript, or video found in DOM' });
   } catch (err) {
     return JSON.stringify({ error: err.toString() });
   }
@@ -220,19 +240,46 @@ class HeadlessWebviewExtractor {
     }
     urlsToTry.add(cleanUrl);
 
+    HeadlessWebviewResult? bestResult;
     for (final targetUrl in urlsToTry) {
       try {
         AppLogger.info('HeadlessWebView attempting extraction for: $targetUrl');
         final result = await _extractSingle(targetUrl, timeout);
-        if (result != null &&
-            ((result.caption != null && result.caption!.trim().isNotEmpty) ||
-             (result.transcript != null && result.transcript!.trim().isNotEmpty))) {
-          AppLogger.info('HeadlessWebView successfully extracted data via ${result.extractionMethod}');
-          return result;
+        if (result != null) {
+          if (bestResult == null) {
+            bestResult = result;
+          } else {
+            bestResult = HeadlessWebviewResult(
+              caption: (bestResult.caption != null && bestResult.caption!.trim().isNotEmpty)
+                  ? bestResult.caption
+                  : result.caption,
+              transcript: (bestResult.transcript != null && bestResult.transcript!.trim().isNotEmpty)
+                  ? bestResult.transcript
+                  : result.transcript,
+              title: bestResult.title ?? result.title,
+              thumbnailUrl: bestResult.thumbnailUrl ?? result.thumbnailUrl,
+              videoUrl: bestResult.videoUrl ?? result.videoUrl,
+              extractionMethod: '${bestResult.extractionMethod}+${result.extractionMethod}',
+            );
+          }
+
+          // If we have both caption AND videoUrl (or transcript), we have everything needed
+          if (bestResult.caption != null && (bestResult.videoUrl != null || bestResult.transcript != null)) {
+            AppLogger.info('HeadlessWebView successfully gathered caption and media via ${bestResult.extractionMethod}');
+            return bestResult;
+          }
         }
       } catch (e) {
         AppLogger.info('HeadlessWebView single attempt exception: $e');
       }
+    }
+
+    if (bestResult != null &&
+        ((bestResult.caption != null && bestResult.caption!.trim().isNotEmpty) ||
+         (bestResult.transcript != null && bestResult.transcript!.trim().isNotEmpty) ||
+         (bestResult.videoUrl != null && bestResult.videoUrl!.trim().isNotEmpty))) {
+      AppLogger.info('HeadlessWebView returning accumulated extraction via ${bestResult.extractionMethod}');
+      return bestResult;
     }
 
     return null;

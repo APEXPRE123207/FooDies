@@ -23,11 +23,13 @@ class AppLogger {
       error: error != null ? sanitize(error.toString()) : null,
       level: 800,
     );
+    print('[${tag ?? "Foodies"}] $clean');
   }
 
   static void debug(String message, {String? tag}) {
     final clean = sanitize(message);
     dev.log(clean, name: tag ?? 'Foodies:Debug', level: 500);
+    print('[${tag ?? "Foodies:Debug"}] $clean');
   }
 
   static void warn(String message, {String? tag, Object? error}) {
@@ -38,6 +40,7 @@ class AppLogger {
       error: error != null ? sanitize(error.toString()) : null,
       level: 900,
     );
+    print('[${tag ?? "Foodies:Warn"}] $clean');
   }
 
   static void error(
@@ -54,6 +57,7 @@ class AppLogger {
       stackTrace: stackTrace,
       level: 1000,
     );
+    print('[${tag ?? "Foodies:Error"}] $clean ${error != null ? "($error)" : ""}');
   }
 
   static void job({

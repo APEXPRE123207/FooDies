@@ -95,7 +95,9 @@ class _AiSetupScreenState extends ConsumerState<AiSetupScreen> {
 
     if (mounted) {
       setState(() {
-        if (key != null && key.isNotEmpty) _apiKeyController.text = key;
+        if (key != null && key.isNotEmpty) {
+          _apiKeyController.text = key;
+        }
         _baseUrlController.text = url;
         if (model.isNotEmpty) {
           _modelController.text = model;
@@ -157,6 +159,8 @@ class _AiSetupScreenState extends ConsumerState<AiSetupScreen> {
     }
   }
 
+
+
   Future<void> _saveAndProceed() async {
     final key = _apiKeyController.text.trim();
     if (key.isEmpty) {
@@ -171,6 +175,7 @@ class _AiSetupScreenState extends ConsumerState<AiSetupScreen> {
     await storage.saveApiKey(key);
     await storage.saveBaseUrl(_baseUrlController.text.trim());
     await storage.saveModelName(_modelController.text.trim());
+
     await storage.setOfflineMode(false);
     ref.invalidate(isApiKeyConfiguredProvider);
 
@@ -179,7 +184,7 @@ class _AiSetupScreenState extends ConsumerState<AiSetupScreen> {
       if (widget.isFromSettings) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ollama Cloud configuration saved!')),
+          const SnackBar(content: Text('AI configuration saved!')),
         );
       } else {
         Navigator.of(context).pushReplacement(
@@ -248,7 +253,7 @@ class _AiSetupScreenState extends ConsumerState<AiSetupScreen> {
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
-                          'Ollama Cloud AI Setup',
+                          'AI Recipe Structuring Setup',
                           style: TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 19,
@@ -261,7 +266,7 @@ class _AiSetupScreenState extends ConsumerState<AiSetupScreen> {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'Foodies converts Instagram & Facebook reels into structured recipes using Ollama Cloud. Fast, zero-setup, and runs completely in the cloud.',
+                    'Foodies structures reel recipes and food posts using Ollama Cloud. Fast, zero-setup, and runs completely in the cloud.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 13,
@@ -288,13 +293,15 @@ class _AiSetupScreenState extends ConsumerState<AiSetupScreen> {
                     children: [
                       Icon(Icons.key, color: AppColors.amber, size: 18),
                       SizedBox(width: 8),
-                      Text(
-                        'HOW TO GET YOUR OLLAMA API KEY',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
+                      Expanded(
+                        child: Text(
+                          'HOW TO GET YOUR OLLAMA API KEY',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                          ),
                         ),
                       ),
                     ],
@@ -394,17 +401,19 @@ class _AiSetupScreenState extends ConsumerState<AiSetupScreen> {
 
             // Free Available Models Section
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'FREE AVAILABLE CLOUD MODELS',
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
+                const Expanded(
+                  child: Text(
+                    'FREE AVAILABLE CLOUD MODELS',
+                    style: TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
@@ -650,7 +659,9 @@ class _AiSetupScreenState extends ConsumerState<AiSetupScreen> {
                 ),
               ),
             ],
-            const SizedBox(height: 22),
+            const SizedBox(height: 24),
+
+            const SizedBox(height: 24),
 
             // Primary Save Button
             SizedBox(

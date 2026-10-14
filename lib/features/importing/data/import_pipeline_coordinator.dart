@@ -118,12 +118,15 @@ class ImportPipelineCoordinator {
           transcript = result.transcript!.trim();
         }
 
-        // If extraction is blocked by platform (e.g. login wall) and no caption or transcript available
-        if ((caption == null || caption.trim().isEmpty) && (transcript == null || transcript.trim().isEmpty)) {
+        // If extraction is blocked by platform and no caption or transcript is available
+        final hasAnyMediaOrText = (caption != null && caption.trim().isNotEmpty) ||
+            (transcript != null && transcript.trim().isNotEmpty);
+
+        if (!hasAnyMediaOrText) {
           await _importRepo.updateStage(
             jobId: jobId,
             stage: ImportStage.needs_input,
-            error: 'Social platform requires login or blocked automated caption extraction. Please paste the caption or transcript manually.',
+            error: 'Social platform requires login or blocked automated extraction. Please paste the caption or transcript manually.',
             status: JobStatus.pending,
           );
           return;
@@ -135,6 +138,17 @@ class ImportPipelineCoordinator {
           rawCaption: caption,
           rawTranscript: transcript,
         );
+      }
+
+      // If both caption and transcript are missing (e.g. video had no speech and caption was blocked)
+      if ((caption == null || caption.trim().isEmpty) && (transcript == null || transcript.trim().isEmpty)) {
+        await _importRepo.updateStage(
+          jobId: jobId,
+          stage: ImportStage.needs_input,
+          error: 'No written recipe or audio transcript available. Please paste the recipe or caption manually.',
+          status: JobStatus.pending,
+        );
+        return;
       }
 
 

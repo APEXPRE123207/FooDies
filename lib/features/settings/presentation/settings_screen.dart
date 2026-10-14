@@ -22,7 +22,7 @@ class SettingsScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(20),
         children: [
           // 1. AI Integration Section
-          _buildSectionHeader('AI EXTRACTION (OLLAMA CLOUD)'),
+          _buildSectionHeader('AI RECIPE STRUCTURING (OLLAMA CLOUD)'),
           Material(
             color: AppColors.surface,
             clipBehavior: Clip.antiAlias,
@@ -53,7 +53,7 @@ class SettingsScreen extends ConsumerWidget {
                 const Divider(height: 1, color: AppColors.border),
                 ListTile(
                   leading: const Icon(Icons.delete_sweep, color: AppColors.error),
-                  title: const Text('Remove API Key', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.error)),
+                  title: const Text('Remove Ollama Key', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.error)),
                   subtitle: const Text('Clears credentials from device storage', style: TextStyle(fontSize: 12)),
                   onTap: () => _confirmClearKey(context, ref),
                 ),
@@ -199,7 +199,7 @@ class SettingsScreen extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceElevated,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Remove API Key?', style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text('Remove Ollama Key?', style: TextStyle(color: AppColors.textPrimary)),
         content: const Text(
           'Your saved recipes will remain completely safe. You will need to re-enter your key to import new recipes using Ollama Cloud.',
           style: TextStyle(color: AppColors.textSecondary),
@@ -217,7 +217,7 @@ class SettingsScreen extends ConsumerWidget {
               ref.invalidate(isApiKeyConfiguredProvider);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('API key removed.')),
+                  const SnackBar(content: Text('Ollama API key removed.')),
                 );
               }
             },
@@ -228,3 +228,4 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 }
+

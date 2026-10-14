@@ -94,7 +94,7 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
                 Expanded(
                   child: Text(
                     transcript.isNotEmpty
-                        ? 'Recipe import started with transcript!'
+                        ? 'Recipe import started with custom transcript!'
                         : 'Recipe import started in background!',
                     style: const TextStyle(color: AppColors.textPrimary),
                   ),
@@ -143,213 +143,182 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
                   ),
                 ),
               ),
-          const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(Icons.link, color: AppColors.primary, size: 24),
-                  SizedBox(width: 10),
-                  Text(
-                    'Import Recipe',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  const Row(
+                    children: [
+                      Icon(Icons.link, color: AppColors.primary, size: 24),
+                      SizedBox(width: 10),
+                      Text(
+                        'Import Recipe',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
+                  _buildPlatformChip(),
                 ],
               ),
-              _buildPlatformChip(),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Paste an Instagram Reel, Facebook Video, or food post link.',
-            style: TextStyle(
-              color: AppColors.textSecondary.withOpacity(0.85),
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 18),
-
-          // URL Input
-          TextField(
-            controller: _urlController,
-            onChanged: _onUrlChanged,
-            decoration: InputDecoration(
-              hintText: 'https://www.instagram.com/reel/...',
-              prefixIcon: const Icon(Icons.link_rounded, color: AppColors.primaryLight),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.content_paste, color: AppColors.primaryLight),
-                tooltip: 'Paste from clipboard',
-                onPressed: _pasteFromClipboard,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Toggle manual overrides
-          GestureDetector(
-            onTap: () => setState(() => _showCaptionField = !_showCaptionField),
-            child: Row(
-              children: [
-                Icon(
-                  _showCaptionField ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                  color: AppColors.amber,
-                  size: 20,
+              const SizedBox(height: 6),
+              Text(
+                'Paste an Instagram Reel, Facebook Video, or food post link.',
+                style: TextStyle(
+                  color: AppColors.textSecondary.withOpacity(0.85),
+                  fontSize: 13,
                 ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    _showCaptionField ? 'Hide manual text overrides' : 'Add custom caption or notes manually (optional)',
-                    style: const TextStyle(
-                      color: AppColors.amber,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
+              ),
+              const SizedBox(height: 18),
+
+              // URL Input
+              TextField(
+                controller: _urlController,
+                onChanged: _onUrlChanged,
+                decoration: InputDecoration(
+                  hintText: 'https://www.instagram.com/reel/...',
+                  prefixIcon: const Icon(Icons.link_rounded, color: AppColors.primaryLight),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.content_paste, color: AppColors.primaryLight),
+                    tooltip: 'Paste from clipboard',
+                    onPressed: _pasteFromClipboard,
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
+              const SizedBox(height: 12),
 
-          if (_showCaptionField) ...[
-            const SizedBox(height: 12),
-
-            // Field 1: Post Caption Override
-            TextField(
-              controller: _captionController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: 'Manual Caption Override (Optional)',
-                hintText: 'Paste written caption if you already copied it...',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.content_paste, color: AppColors.primaryLight),
-                  tooltip: 'Paste caption',
-                  onPressed: () async {
-                    final data = await Clipboard.getData('text/plain');
-                    if (data?.text != null) {
-                      setState(() {
-                        _captionController.text = data!.text!.trim();
-                      });
-                    }
-                  },
+              // Toggle manual overrides
+              GestureDetector(
+                onTap: () => setState(() => _showCaptionField = !_showCaptionField),
+                child: Row(
+                  children: [
+                    Icon(
+                      _showCaptionField ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                      color: AppColors.amber,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        _showCaptionField ? 'Hide manual text overrides' : 'Add custom caption or notes manually (optional)',
+                        style: const TextStyle(
+                          color: AppColors.amber,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
 
-            // Field 2: Custom Transcript Override
-            TextField(
-              controller: _transcriptController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: 'Manual Transcript Override (Optional)',
-                hintText: 'Paste custom transcript text if you have it...',
-                suffixIcon: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
+              if (_showCaptionField) ...[
+                const SizedBox(height: 12),
+
+                // Field 1: Post Caption Override
+                TextField(
+                  controller: _captionController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'Manual Caption Override (Optional)',
+                    hintText: 'Paste written caption if you already copied it...',
+                    suffixIcon: IconButton(
                       icon: const Icon(Icons.content_paste, color: AppColors.primaryLight),
-                      tooltip: 'Paste transcript',
+                      tooltip: 'Paste caption',
                       onPressed: () async {
                         final data = await Clipboard.getData('text/plain');
                         if (data?.text != null) {
                           setState(() {
-                            _transcriptController.text = data!.text!.trim();
+                            _captionController.text = data!.text!.trim();
                           });
                         }
                       },
                     ),
-                    if (_transcriptController.text.isNotEmpty)
-                      IconButton(
-                        icon: const Icon(Icons.clear, size: 18, color: AppColors.textMuted),
-                        tooltip: 'Clear transcript',
-                        onPressed: () {
-                          setState(() => _transcriptController.clear());
-                        },
-                      ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ],
+                const SizedBox(height: 12),
 
-            // -------------------------------------------------------------
-            // [COMMENTED OUT] InstaUstad 3rd-party caption service link
-            // Replaced by 100% in-app Headless WebView
-            // -------------------------------------------------------------
-            /*
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Need the caption? Extract via InstaUstad:',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 11),
+                // Field 2: Custom Transcript Override
+                TextField(
+                  controller: _transcriptController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'Manual Transcript Override (Optional)',
+                    hintText: 'Paste custom transcript text if you have it...',
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.content_paste, color: AppColors.primaryLight),
+                          tooltip: 'Paste transcript',
+                          onPressed: () async {
+                            final data = await Clipboard.getData('text/plain');
+                            if (data?.text != null) {
+                              setState(() {
+                                _transcriptController.text = data!.text!.trim();
+                              });
+                            }
+                          },
+                        ),
+                        if (_transcriptController.text.isNotEmpty)
+                          IconButton(
+                            icon: const Icon(Icons.clear, size: 18, color: AppColors.textMuted),
+                            tooltip: 'Clear transcript',
+                            onPressed: () {
+                              setState(() => _transcriptController.clear());
+                            },
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                TextButton.icon(
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  ),
-                  icon: const Icon(Icons.open_in_browser, size: 14, color: AppColors.primaryLight),
-                  label: const Text('InstaUstad Extractor', style: TextStyle(fontSize: 11, color: AppColors.primaryLight)),
-                  onPressed: () async {
-                    final uri = Uri.parse('https://instaustad.com/instagram-reel-caption.php');
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
-                    }
-                  },
                 ),
               ],
-            ),
-            */
-          const SizedBox(height: 18),
 
-          // Submit button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _isSubmitting ? null : _startImport,
-              icon: _isSubmitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.auto_awesome, size: 20),
-              label: Text(_isSubmitting ? 'Bypassing gatekeeping...' : 'Extract & Save Recipe'),
-            ),
-          ),
-          const SizedBox(height: 12),
+              const SizedBox(height: 18),
 
-          // Manual creation fallback
-          Center(
-            child: TextButton.icon(
-              icon: const Icon(Icons.edit_note, size: 18, color: AppColors.textSecondary),
-              label: const Text(
-                'Or write a recipe manually',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              // Submit button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isSubmitting ? null : _startImport,
+                  icon: _isSubmitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.auto_awesome, size: 20),
+                  label: Text(_isSubmitting ? 'Bypassing gatekeeping...' : 'Extract & Save Recipe'),
+                ),
               ),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const RecipeEditScreen()),
-                );
-              },
-            ),
+              const SizedBox(height: 12),
+
+              // Manual creation fallback
+              Center(
+                child: TextButton.icon(
+                  icon: const Icon(Icons.edit_note, size: 18, color: AppColors.textSecondary),
+                  label: const Text(
+                    'Or write a recipe manually',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const RecipeEditScreen()),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-    ),
-  ),
-);
+    );
   }
 
   Widget _buildPlatformChip() {
