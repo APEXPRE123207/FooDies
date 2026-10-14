@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/logger.dart';
@@ -42,7 +41,7 @@ class SecureStorageService {
     }
   }
 
-  /// Read API key from secure storage, SharedPreferences, or .env
+  /// Read API key from secure storage or SharedPreferences (entered in-app)
   Future<String?> getApiKey() async {
     try {
       final key = await _secureStorage.read(key: _keyApiKey);
@@ -56,28 +55,6 @@ class SecureStorageService {
     if (prefKey != null && prefKey.trim().isNotEmpty) {
       return prefKey.trim();
     }
-
-    // Fallback: Check local .env file (useful in debug/development)
-    try {
-      final envFile = File('.env');
-      if (await envFile.exists()) {
-        final lines = await envFile.readAsLines();
-        for (final line in lines) {
-          final trimmed = line.trim();
-          if (trimmed.startsWith('OLLAMA_KEY=')) {
-            final key = trimmed
-                .substring('OLLAMA_KEY='.length)
-                .replaceAll('"', '')
-                .replaceAll("'", '')
-                .trim();
-            if (key.isNotEmpty) {
-              await saveApiKey(key);
-              return key;
-            }
-          }
-        }
-      }
-    } catch (_) {}
 
     return null;
   }

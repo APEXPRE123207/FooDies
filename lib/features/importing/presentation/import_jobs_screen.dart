@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/status_badge.dart';
@@ -142,6 +141,90 @@ class ImportJobsScreen extends ConsumerWidget {
             const SizedBox(height: 8),
           ],
 
+          // Captured Transcript indicator (Answers: "How do I know if the transcript worked?")
+          if (job.rawTranscript != null && job.rawTranscript!.trim().isNotEmpty) ...[
+            Container(
+              margin: const EdgeInsets.only(top: 4, bottom: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.success.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.success.withOpacity(0.3)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.description, size: 15, color: AppColors.success),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Transcript Captured:',
+                          style: TextStyle(
+                            color: AppColors.success,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          job.rawTranscript!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // Captured Caption indicator
+          if (job.rawCaption != null && job.rawCaption!.trim().isNotEmpty) ...[
+            Container(
+              margin: const EdgeInsets.only(top: 2, bottom: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceElevated,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.description_outlined, size: 14, color: AppColors.amber),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Caption Captured:',
+                          style: TextStyle(
+                            color: AppColors.amber,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          job.rawCaption!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // Error or status note
           if (job.lastError != null) ...[
             Container(
@@ -242,7 +325,7 @@ class ImportJobsScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'When social platforms restrict automated scraping, paste the reel caption or ingredients below to complete extraction.',
+                'Paste the reel caption or ingredients below to extract and save the recipe.',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
               ),
               const SizedBox(height: 14),
@@ -264,37 +347,23 @@ class ImportJobsScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Extract caption via InstaUstad:',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 11),
-                  ),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    ),
-                    icon: const Icon(Icons.open_in_browser, size: 13, color: AppColors.primaryLight),
-                    label: const Text('Open InstaUstad', style: TextStyle(fontSize: 11, color: AppColors.primaryLight)),
-                    onPressed: () async {
-                      final uri = Uri.parse('https://instaustad.com/instagram-reel-caption.php');
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
-                      }
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               TextField(
                 controller: transcriptController,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: 'Spoken transcript (optional)...',
-                  labelText: 'Transcript',
+                decoration: InputDecoration(
+                  labelText: 'Spoken Transcript or Notes (Optional)',
+                  hintText: 'Paste transcript text or recipe notes if you have them...',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.content_paste, color: AppColors.primaryLight),
+                    tooltip: 'Paste transcript',
+                    onPressed: () async {
+                      final data = await Clipboard.getData('text/plain');
+                      if (data?.text != null) {
+                        transcriptController.text = data!.text!.trim();
+                      }
+                    },
+                  ),
                 ),
               ),
             ],
@@ -308,15 +377,16 @@ class ImportJobsScreen extends ConsumerWidget {
           ElevatedButton(
             onPressed: () async {
               final caption = captionController.text.trim();
-              if (caption.isEmpty) return;
+              final transcript = transcriptController.text.trim();
+              if (caption.isEmpty && transcript.isEmpty) return;
 
-              Navigator.of(ctx).pop();
+              if (ctx.mounted) {
+                Navigator.of(ctx).pop();
+              }
               await ref.read(importCoordinatorProvider).submitManualInput(
                     job.id,
-                    caption: caption,
-                    transcript: transcriptController.text.trim().isNotEmpty
-                        ? transcriptController.text.trim()
-                        : null,
+                    caption: caption.isNotEmpty ? caption : null,
+                    transcript: transcript.isNotEmpty ? transcript : null,
                   );
             },
             child: const Text('Submit & Extract'),

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -90,30 +89,9 @@ class _AiSetupScreenState extends ConsumerState<AiSetupScreen> {
 
   Future<void> _loadExisting() async {
     final storage = ref.read(secureStorageProvider);
-    var key = await storage.getApiKey();
+    final key = await storage.getApiKey();
     final url = await storage.getBaseUrl();
     final model = await storage.getModelName();
-
-    // Check .env if no key was saved in storage yet
-    if (key == null || key.isEmpty) {
-      try {
-        final envFile = File('.env');
-        if (await envFile.exists()) {
-          final lines = await envFile.readAsLines();
-          for (final line in lines) {
-            final trimmed = line.trim();
-            if (trimmed.startsWith('OLLAMA_KEY=')) {
-              key = trimmed
-                  .substring('OLLAMA_KEY='.length)
-                  .replaceAll('"', '')
-                  .replaceAll("'", '')
-                  .trim();
-              break;
-            }
-          }
-        }
-      } catch (_) {}
-    }
 
     if (mounted) {
       setState(() {

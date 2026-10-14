@@ -30,20 +30,57 @@ class RecipeStructurer {
   static const Map<String, dynamic> recipeJsonSchema = {
     'type': 'object',
     'properties': {
+      'is_valid_recipe': {'type': 'boolean'},
       'title': {'type': 'string'},
       'description': {'type': 'string'},
-      'originalLanguage': {'type': 'string'},
-      'prepTimeMinutes': {'type': 'integer'},
-      'cookTimeMinutes': {'type': 'integer'},
-      'totalTimeMinutes': {'type': 'integer'},
-      'servingCount': {'type': 'integer'},
-      'calories': {'type': 'number'},
-      'protein': {'type': 'number'},
-      'carbs': {'type': 'number'},
-      'fat': {'type': 'number'},
-      'tags': {
-        'type': 'array',
-        'items': {'type': 'string'}
+      'difficulty': {'type': 'string'},
+      'servings': {
+        'type': 'object',
+        'properties': {
+          'amount': {'type': 'integer'},
+          'is_estimated': {'type': 'boolean'}
+        },
+        'required': ['amount']
+      },
+      'times': {
+        'type': 'object',
+        'properties': {
+          'prep_time_minutes': {'type': 'integer'},
+          'cook_time_minutes': {'type': 'integer'},
+          'total_time_minutes': {'type': 'integer'},
+          'is_estimated': {'type': 'boolean'}
+        }
+      },
+      'best_for': {
+        'type': 'object',
+        'properties': {
+          'primary_badge': {'type': 'string'},
+          'fitness_and_gym': {
+            'type': 'array',
+            'items': {'type': 'string'}
+          },
+          'diet_suitability': {
+            'type': 'array',
+            'items': {'type': 'string'}
+          },
+          'lifestyle_and_occasion': {
+            'type': 'array',
+            'items': {'type': 'string'}
+          },
+          'suitability_reason': {'type': 'string'}
+        }
+      },
+      'nutrition_per_serving': {
+        'type': 'object',
+        'properties': {
+          'calories': {'type': 'number'},
+          'protein_g': {'type': 'number'},
+          'carbs_g': {'type': 'number'},
+          'fat_g': {'type': 'number'},
+          'fiber_g': {'type': 'number'},
+          'macro_profile': {'type': 'string'},
+          'is_estimated': {'type': 'boolean'}
+        }
       },
       'ingredients': {
         'type': 'array',
@@ -53,10 +90,27 @@ class RecipeStructurer {
             'name': {'type': 'string'},
             'quantity': {'type': 'number'},
             'unit': {'type': 'string'},
+            'prep_note': {'type': 'string'},
             'notes': {'type': 'string'},
-            'isOptional': {'type': 'boolean'}
+            'is_optional': {'type': 'boolean'},
+            'isOptional': {'type': 'boolean'},
+            'is_estimated': {'type': 'boolean'}
           },
           'required': ['name']
+        }
+      },
+      'instructions': {
+        'type': 'array',
+        'items': {
+          'type': 'object',
+          'properties': {
+            'step_number': {'type': 'integer'},
+            'stepNumber': {'type': 'integer'},
+            'instruction': {'type': 'string'},
+            'timer_minutes': {'type': 'integer'},
+            'durationMinutes': {'type': 'integer'}
+          },
+          'required': ['instruction']
         }
       },
       'steps': {
@@ -70,9 +124,30 @@ class RecipeStructurer {
           },
           'required': ['stepNumber', 'instruction']
         }
+      },
+      'tags': {
+        'type': 'object',
+        'properties': {
+          'cuisine': {
+            'type': 'array',
+            'items': {'type': 'string'}
+          },
+          'meal_type': {
+            'type': 'array',
+            'items': {'type': 'string'}
+          },
+          'cooking_method': {
+            'type': 'array',
+            'items': {'type': 'string'}
+          }
+        }
+      },
+      'search_keywords': {
+        'type': 'array',
+        'items': {'type': 'string'}
       }
     },
-    'required': ['title', 'ingredients', 'steps']
+    'required': ['title', 'ingredients']
   };
 
   /// Main entry point: takes caption and optional transcript, queries Ollama Cloud, validates, and builds Recipe
@@ -85,30 +160,143 @@ class RecipeStructurer {
   }) async {
     final combinedSource = StringBuffer();
     if (caption != null && caption.trim().isNotEmpty) {
-      combinedSource.writeln('--- SOURCE CAPTION & METADATA ---');
+      combinedSource.writeln('--- WRITTEN POST CAPTION & DESCRIPTION ---');
       combinedSource.writeln(caption.trim());
+      combinedSource.writeln();
     }
     if (transcript != null && transcript.trim().isNotEmpty) {
-      combinedSource.writeln('--- AUDIO TRANSCRIPT ---');
+      combinedSource.writeln('--- SPOKEN VIDEO AUDIO TRANSCRIPT (SPEECH EXTRACTED FROM VIDEO) ---');
       combinedSource.writeln(transcript.trim());
+      combinedSource.writeln();
     }
 
     if (combinedSource.isEmpty) {
       throw RecipeValidationException('No caption or audio transcript available to structure.');
     }
-
     final systemPrompt = '''
-You are a master culinary data extraction engine for Foodies.
-Your task is to extract a structured recipe from social media food reel captions and transcripts.
+You are an elite Culinary & Nutritional Data Extraction Engine for the "Foodies" platform. 
+You will always receive two inputs from a social media food reel:
+1. CAPTION: The written post description.
+2. AUDIO TRANSCRIPT: The auto-generated speech-to-text transcript from the video's audio.
 
-Strict Rules:
-1. Extract the dish title faithfully in its original language.
-2. List all ingredients mentioned with exact or estimated quantities, units, and optional status. Do NOT invent ingredients not mentioned.
-3. List all cooking instructions in clear, logical, sequential steps (1, 2, 3...).
-4. Extract prep and cooking times in minutes if mentioned; otherwise leave as null.
-5. If the creator explicitly stated calories, protein, carbs, or fat, extract them. Otherwise leave as null.
-6. Provide relevant category tags (e.g. "Italian", "Quick", "Dinner", "Vegetarian", "Dessert").
-7. Output valid JSON matching the required schema. No Markdown wrapper, no conversational text.
+Your objective is to synthesize both sources into clean, reliable, kitchen-ready structured JSON recipe data with smart fitness, diet, and lifestyle categorization.
+
+### CORE EXTRACTION & INFERENCE RULES
+
+1. Source Synthesis & "Comment-for-DM" Recovery:
+   - Treat the CAPTION and AUDIO TRANSCRIPT as two halves of a single dataset. Cross-reference both to capture every ingredient, quantity, and tip.
+   - "COMMENT FOR DM" RECOVERY: Creators frequently gatekeep the written caption (e.g., "Comment PROTEIN and I'll DM you the recipe!") while speaking the actual recipe in the video audio. When the caption is promotional or lacks details, rely 100% on the AUDIO TRANSCRIPT to extract the recipe.
+   - TRANSCRIPT TYPO CORRECTION: Audio transcripts are auto-generated and often contain phonetic speech-to-text errors (e.g., "paneer" -> "pioneer", "besan" -> "basin", "ghee" -> "gee", "soy chunks" -> "saw chunks", "1 tsp cumin" -> "1,000 human"). Use culinary context to automatically correct phonetic transcription errors into proper ingredient names and cooking terms.
+   - TRUE INVALID FALLBACK & ZERO-HALLUCINATION POLICY:
+     * If NEITHER the caption NOR the audio transcript provides recipe ingredients or preparation instructions (e.g., the caption is promotional like "Comment RECIPE" or "Watch till end" AND no audio transcript was captured), DO NOT INVENT OR HALLUCINATE A RECIPE!
+     * Under NO circumstances should you fabricate cooking steps or ingredients that were neither written nor spoken.
+     * In such cases, you MUST set `"is_valid_recipe": false`, `"ingredients": []`, and `"instructions": []`.
+
+2. Dish Title & Description:
+   - Extract the dish title faithfully in its original language, stripping away promotional clutter, emojis, and clickbait (e.g., convert "OMG Best Ever 10-Min Garlic Noodles!! 🔥🍜" to "Garlic Noodles").
+   - If neither source has an explicit title, infer a concise, appetizing culinary title based on the primary ingredients and technique.
+   - Generate a brief, 1-2 sentence appetizing summary of the dish.
+
+3. Ingredients (Strict Grounding + Smart Quantity Inference):
+   - Extract every ingredient mentioned in EITHER the caption OR the transcript.
+   - Do NOT invent or hallucinate ingredients that are not mentioned or clearly implied.
+   - Normalize quantities and units into standard culinary measurements (e.g., convert "a splash" to "1 tbsp", "a pinch" to "1/8 tsp", "1 scoop" to "30 g").
+   - If an ingredient is mentioned without a quantity, provide a logical culinary estimate based on the dish's scale and set `"is_estimated": true`. If stated by the creator, set `"is_estimated": false`.
+   - Flag garnishes, "to taste" items, or optional additions with `"is_optional": true`.
+   - Separate preparation notes from the ingredient name (e.g., `"name": "chicken breast"`, `"prep_note": "diced into 1-inch cubes"`).
+
+4. Cooking Instructions (Sequential & Actionable):
+   - Synthesize the caption and transcript into clear, logical, chronological steps (1, 2, 3...).
+   - Filter out social media banter, sponsor plugs, and calls to action ("Link in bio", "Comment RECIPE", "Follow for more").
+   - Write in clear, imperative culinary language. Extract any time mentioned in a specific step into `"timer_minutes"`.
+
+5. Time & Yield Estimation (Mandatory Fallback):
+   - Extract `prep_time_minutes`, `cook_time_minutes`, and `servings` if explicitly stated in either source.
+   - CRITICAL FALLBACK: If times or servings are NOT mentioned, calculate a realistic culinary approximation based on the ingredients, prep work, and cooking method. Never leave time fields as null.
+   - Set `"is_estimated": true` whenever you approximate, and `false` when explicitly stated.
+
+6. Nutritional Data (Extract or Estimate per Serving):
+   - If the creator explicitly states `calories`, `protein_g`, `carbs_g`, or `fat_g` in the caption or transcript, extract them and set `"is_estimated": false`.
+   - SMART FALLBACK: If macros are NOT stated by the creator, calculate a reasonable nutritional estimate per serving based on the extracted ingredient quantities and cooking method (accounting for cooking oils/butter/sauces), and set `"is_estimated": true`.
+
+7. "Best For" Fitness, Diet & Lifestyle Suitability:
+   - Analyze the ingredients, cooking method, and macros per serving to classify what the recipe is **Best For** across three distinct lenses:
+     * `fitness_and_gym`: Evaluate objectively using nutritional logic (do not blindly trust creator hype):
+       - "Muscle Gain / Bulking": High calorie (>500 kcal) AND high protein (>30g protein/serving).
+       - "Fat Loss / Cutting": High volume, controlled calories (<450 kcal/serving), high protein-to-calorie ratio (at least 1g protein per 12-15 kcal).
+       - "Pre-Workout Fuel": Moderate-to-high fast/complex carbs, low-to-moderate fat, easy to digest.
+       - "Post-Workout Recovery": High protein (>25g) paired with moderate-to-high carbs to replenish glycogen.
+       - "High-Protein Snack": Portable or quick snack with >15g protein.
+       - "Cheat Meal / Treat": High calorie, high sugar, or deep-fried indulgent dishes.
+     * `diet_suitability`: Strictly verify against all ingredients (including hidden sauces/oils):
+       - Examples: "Clean Eating", "Keto-Friendly" (<10g net carbs), "Low-Carb", "Low-Calorie", "Low-Fat", "High-Fiber", "Gut-Healthy", "Diabetic-Friendly" (low glycemic index, no refined sugar), "Vegetarian", "Vegan", "Eggetarian", "Jain-Friendly", "Gluten-Free", "Dairy-Free", "Lactose-Free".
+     * `lifestyle_and_occasion`: Practical real-life scenarios this dish is best suited for:
+       - Examples: "Hostel / Dorm Friendly" (minimal equipment like kettle/induction, basic ingredients), "Bachelor / Beginner Friendly", "Meal Prep / Tiffin Box" (reheats well), "Late-Night Cravings", "10-Minute Busy Weeknight", "Budget-Friendly", "Kids Lunchbox", "Party / Game Night", "Date Night".
+   - Generate a 1-sentence `"suitability_reason"` explaining *why* this dish fits those badges.
+
+8. Multi-Dimensional Culinary Tags:
+   - `cuisine`: e.g., "Indian", "Italian", "Mexican", "Korean", "Mediterranean", "Pan-Asian", "Continental".
+   - `meal_type`: e.g., "Breakfast", "Lunch", "Dinner", "Snack", "Pre-Workout", "Post-Workout", "Dessert", "Beverage", "Side Dish".
+   - `cooking_method`: e.g., "Air Fryer", "One-Pot", "No-Cook", "Pan-Seared", "Baked", "Stir-Fry", "Grilled", "Pressure Cooker", "Blender Only".
+
+### OUTPUT FORMAT
+Output ONLY raw, valid JSON matching the exact schema below. Do NOT wrap the output in Markdown code blocks (no ```json), and do NOT include any conversational text.
+
+{
+  "is_valid_recipe": boolean,
+  "title": "string",
+  "description": "string",
+  "servings": {
+    "amount": number,
+    "is_estimated": boolean
+  },
+  "times": {
+    "prep_time_minutes": number,
+    "cook_time_minutes": number,
+    "total_time_minutes": number,
+    "is_estimated": boolean
+  },
+  "difficulty": "Easy" | "Medium" | "Hard",
+  "best_for": {
+    "primary_badge": "string",
+    "fitness_and_gym": ["string"],
+    "diet_suitability": ["string"],
+    "lifestyle_and_occasion": ["string"],
+    "suitability_reason": "string"
+  },
+  "nutrition_per_serving": {
+    "calories": number,
+    "protein_g": number,
+    "carbs_g": number,
+    "fat_g": number,
+    "fiber_g": number | null,
+    "macro_profile": "High-Protein" | "Balanced" | "High-Carb" | "Keto / High-Fat" | "Indulgent / Cheat",
+    "is_estimated": boolean
+  },
+  "ingredients": [
+    {
+      "name": "string",
+      "quantity": number | null,
+      "unit": "string | null",
+      "prep_note": "string | null",
+      "is_optional": boolean,
+      "is_estimated": boolean
+    }
+  ],
+  "instructions": [
+    {
+      "step_number": number,
+      "instruction": "string",
+      "timer_minutes": number | null
+    }
+  ],
+  "tags": {
+    "cuisine": ["string"],
+    "meal_type": ["string"],
+    "cooking_method": ["string"]
+  },
+  "search_keywords": ["string"]
+}
 ''';
 
     final messages = [
@@ -190,6 +378,13 @@ Strict Rules:
     }
 
     try {
+      // Validate if AI flagged as not a recipe
+      if (json['is_valid_recipe'] == false) {
+        throw RecipeValidationException(
+          'The post does not appear to contain a culinary recipe or cooking demonstration.',
+        );
+      }
+
       // Validate Title
       final title = json['title']?.toString().trim();
       if (title == null || title.isEmpty) {
@@ -220,6 +415,12 @@ Strict Rules:
           final name = item['name']?.toString().trim();
           if (name == null || name.isEmpty) continue;
 
+          final note = (item['prep_note'] ?? item['notes'])?.toString().trim();
+          final isOpt = item['is_optional'] == true ||
+              item['isOptional'] == true ||
+              item['is_optional']?.toString().toLowerCase() == 'true' ||
+              item['isOptional']?.toString().toLowerCase() == 'true';
+
           ingredients.add(
             Ingredient(
               id: _uuid.v4(),
@@ -227,8 +428,8 @@ Strict Rules:
               name: name,
               quantity: _safeDouble(item['quantity']),
               unit: item['unit']?.toString().trim(),
-              notes: item['notes']?.toString().trim(),
-              isOptional: item['isOptional'] == true || item['isOptional']?.toString().toLowerCase() == 'true',
+              notes: note != null && note.isNotEmpty ? note : null,
+              isOptional: isOpt,
               sortOrder: i,
             ),
           );
@@ -241,8 +442,8 @@ Strict Rules:
         throw RecipeValidationException('All extracted ingredients had empty names.');
       }
 
-      // Steps list normalization
-      final rawSteps = json['steps'];
+      // Steps / Instructions list normalization (supports 'instructions' or legacy 'steps')
+      final rawSteps = json['instructions'] ?? json['steps'];
       final stepsRawList = <dynamic>[];
       if (rawSteps is List) {
         stepsRawList.addAll(rawSteps);
@@ -264,13 +465,16 @@ Strict Rules:
           final instruction = item['instruction']?.toString().trim();
           if (instruction == null || instruction.isEmpty) continue;
 
+          final stepNum = _safeInt(item['step_number'] ?? item['stepNumber'], defaultVal: i + 1)!;
+          final duration = _safeInt(item['timer_minutes'] ?? item['durationMinutes']);
+
           steps.add(
             RecipeStep(
               id: _uuid.v4(),
               recipeId: recipeId,
-              stepNumber: _safeInt(item['stepNumber'], defaultVal: i + 1)!,
+              stepNumber: stepNum,
               instruction: instruction,
-              durationMinutes: _safeInt(item['durationMinutes']),
+              durationMinutes: duration,
             ),
           );
         } else if (rawItem is String && rawItem.trim().isNotEmpty) {
@@ -290,43 +494,55 @@ Strict Rules:
         throw RecipeValidationException('All extracted steps had empty instructions.');
       }
 
-      // Tags normalization
-      final rawTags = json['tags'];
-      final rawTagsList = <String>[];
-      if (rawTags is List) {
-        for (final t in rawTags) {
-          if (t != null) {
-            final str = t.toString().trim();
-            if (str.isNotEmpty) rawTagsList.add(str);
-          }
-        }
-      } else if (rawTags is String && rawTags.trim().isNotEmpty) {
-        rawTagsList.addAll(rawTags.split(RegExp(r'[,\n#]')).map((t) => t.trim()).where((t) => t.isNotEmpty));
+      // Servings (supports {amount: 2} or legacy servingCount: 2)
+      int? parsedServing;
+      if (json['servings'] is Map) {
+        parsedServing = _safeInt(json['servings']['amount']);
+      } else if (json['servings'] != null) {
+        parsedServing = _safeInt(json['servings']);
+      }
+      parsedServing ??= _safeInt(json['servingCount'], defaultVal: 2);
+      final servingCount = (parsedServing != null && parsedServing > 0) ? parsedServing : 2;
+
+      // Times (supports times object or legacy prepTimeMinutes, etc.)
+      int? prepTime;
+      int? cookTime;
+      int? totalTime;
+
+      if (json['times'] is Map) {
+        final timesMap = json['times'] as Map;
+        prepTime = _safeInt(timesMap['prep_time_minutes']);
+        cookTime = _safeInt(timesMap['cook_time_minutes']);
+        totalTime = _safeInt(timesMap['total_time_minutes']);
+      }
+      prepTime ??= _safeInt(json['prepTimeMinutes']);
+      cookTime ??= _safeInt(json['cookTimeMinutes']);
+      totalTime ??= _safeInt(json['totalTimeMinutes']);
+      if (totalTime == null && (prepTime != null || cookTime != null)) {
+        totalTime = (prepTime ?? 0) + (cookTime ?? 0);
       }
 
-      final tags = rawTagsList
-          .map((t) => RecipeTag(id: _uuid.v4(), name: t, category: _categorizeTag(t)))
-          .toList();
-
-      // Servings
-      final parsedServing = _safeInt(json['servingCount'], defaultVal: 2)!;
-      final servingCount = parsedServing > 0 ? parsedServing : 2;
-
-      // Nutrition: check if explicitly stated by creator
+      // Nutrition: check creator stated or AI-extracted values
       NutritionInfo nutrition;
-      final statedCalories = _safeDouble(json['calories']);
-      final statedProtein = _safeDouble(json['protein']);
-      final statedCarbs = _safeDouble(json['carbs']);
-      final statedFat = _safeDouble(json['fat']);
+      Map<String, dynamic>? nutritionMap;
+      if (json['nutrition_per_serving'] is Map) {
+        nutritionMap = Map<String, dynamic>.from(json['nutrition_per_serving'] as Map);
+      }
+
+      final statedCalories = _safeDouble(nutritionMap?['calories'] ?? json['calories']);
+      final statedProtein = _safeDouble(nutritionMap?['protein_g'] ?? nutritionMap?['protein'] ?? json['protein']);
+      final statedCarbs = _safeDouble(nutritionMap?['carbs_g'] ?? nutritionMap?['carbs'] ?? json['carbs']);
+      final statedFat = _safeDouble(nutritionMap?['fat_g'] ?? nutritionMap?['fat'] ?? json['fat']);
 
       if (statedCalories != null || statedProtein != null || statedCarbs != null || statedFat != null) {
+        final isEstimated = nutritionMap?['is_estimated'] == true;
         nutrition = NutritionInfo(
           calories: statedCalories,
           proteinGrams: statedProtein,
           carbsGrams: statedCarbs,
           fatGrams: statedFat,
-          method: 'creator',
-          confidence: 'high',
+          method: isEstimated ? 'estimated' : 'creator',
+          confidence: isEstimated ? 'medium' : 'high',
         );
       } else {
         // Estimate from ingredients using food composition database
@@ -336,21 +552,102 @@ Strict Rules:
         );
       }
 
+      // Tags normalization & fitness / diet / lifestyle classification extraction
+      final tags = <RecipeTag>[];
+      final seenTagNames = <String>{};
+
+      void addTag(String? rawName, String defaultCategory) {
+        if (rawName == null) return;
+        final name = rawName.trim();
+        if (name.isEmpty) return;
+        final lower = name.toLowerCase();
+        if (seenTagNames.contains(lower)) return;
+        seenTagNames.add(lower);
+        tags.add(RecipeTag(id: _uuid.v4(), name: name, category: defaultCategory));
+      }
+
+      final rawTags = json['tags'];
+      if (rawTags is Map) {
+        for (final entry in rawTags.entries) {
+          final cat = entry.key.toString().trim();
+          final val = entry.value;
+          if (val is List) {
+            for (final item in val) {
+              addTag(item?.toString(), cat);
+            }
+          } else if (val is String) {
+            addTag(val, cat);
+          }
+        }
+      } else if (rawTags is List) {
+        for (final t in rawTags) {
+          if (t != null) {
+            final str = t.toString().trim();
+            if (str.isNotEmpty) addTag(str, _categorizeTag(str));
+          }
+        }
+      } else if (rawTags is String && rawTags.trim().isNotEmpty) {
+        for (final t in rawTags.split(RegExp(r'[,\n#]'))) {
+          final str = t.trim();
+          if (str.isNotEmpty) addTag(str, _categorizeTag(str));
+        }
+      }
+
+      // Best For badges
+      final bestFor = json['best_for'];
+      if (bestFor is Map) {
+        addTag(bestFor['primary_badge']?.toString(), 'fitness');
+        if (bestFor['fitness_and_gym'] is List) {
+          for (final item in (bestFor['fitness_and_gym'] as List)) {
+            addTag(item?.toString(), 'fitness');
+          }
+        }
+        if (bestFor['diet_suitability'] is List) {
+          for (final item in (bestFor['diet_suitability'] as List)) {
+            addTag(item?.toString(), 'diet');
+          }
+        }
+        if (bestFor['lifestyle_and_occasion'] is List) {
+          for (final item in (bestFor['lifestyle_and_occasion'] as List)) {
+            addTag(item?.toString(), 'lifestyle');
+          }
+        }
+      }
+
+      // Search keywords
+      final keywords = json['search_keywords'];
+      if (keywords is List) {
+        for (final item in keywords) {
+          addTag(item?.toString(), 'keyword');
+        }
+      }
+
+      // Description & Suitability Reason
+      String? description = json['description']?.toString().trim();
+      final suitabilityReason = (bestFor is Map) ? bestFor['suitability_reason']?.toString().trim() : null;
+      if (suitabilityReason != null && suitabilityReason.isNotEmpty) {
+        if (description == null || description.isEmpty) {
+          description = suitabilityReason;
+        } else if (!description.contains(suitabilityReason)) {
+          description = '$description\n\nBest for: $suitabilityReason';
+        }
+      }
+
       final now = DateTime.now();
 
       return Recipe(
         id: recipeId,
         title: title,
-        description: json['description']?.toString().trim(),
+        description: description,
         sourceUrl: sourceUrl,
         sourcePlatform: sourcePlatform,
         sourceCaption: sourceCaption,
         transcript: transcript,
         originalLanguage: json['originalLanguage']?.toString().trim() ?? 'en',
         imagePath: imagePath,
-        prepTimeMinutes: _safeInt(json['prepTimeMinutes']),
-        cookTimeMinutes: _safeInt(json['cookTimeMinutes']),
-        totalTimeMinutes: _safeInt(json['totalTimeMinutes']),
+        prepTimeMinutes: prepTime,
+        cookTimeMinutes: cookTime,
+        totalTimeMinutes: totalTime,
         servingCount: servingCount,
         nutrition: nutrition,
         isFavorite: false,

@@ -25,7 +25,6 @@ class SettingsScreen extends ConsumerWidget {
           _buildSectionHeader('AI EXTRACTION (OLLAMA CLOUD)'),
           Material(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
             clipBehavior: Clip.antiAlias,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),

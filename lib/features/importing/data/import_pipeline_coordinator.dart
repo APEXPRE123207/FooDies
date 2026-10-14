@@ -45,6 +45,7 @@ class ImportPipelineCoordinator {
         sourceUrl: urlToUse,
         recipeId: existingRecipe.id,
         rawCaption: manualCaption,
+        rawTranscript: manualTranscript,
       ).then((job) async {
         await _importRepo.updateStage(
           jobId: job.id,
@@ -59,6 +60,7 @@ class ImportPipelineCoordinator {
     final job = await _importRepo.createJob(
       sourceUrl: urlToUse,
       rawCaption: manualCaption,
+      rawTranscript: manualTranscript,
     );
 
     // 3. Kick off async processing without blocking caller
@@ -112,9 +114,12 @@ class ImportPipelineCoordinator {
         final result = await _extractor.extract(url);
         caption = result.caption;
         thumbnailUrl = result.thumbnailUrl;
+        if (result.transcript != null && result.transcript!.trim().isNotEmpty) {
+          transcript = result.transcript!.trim();
+        }
 
-        // If extraction is blocked by platform (e.g. login wall) and no manual caption provided
-        if (caption == null || caption.trim().isEmpty) {
+        // If extraction is blocked by platform (e.g. login wall) and no caption or transcript available
+        if ((caption == null || caption.trim().isEmpty) && (transcript == null || transcript.trim().isEmpty)) {
           await _importRepo.updateStage(
             jobId: jobId,
             stage: ImportStage.needs_input,
@@ -128,19 +133,10 @@ class ImportPipelineCoordinator {
           jobId: jobId,
           stage: ImportStage.extracting,
           rawCaption: caption,
+          rawTranscript: transcript,
         );
       }
 
-      // Stage C: Transcription check
-      final isComplete = _extractor.checkCompleteness(caption);
-      if (!isComplete && (transcript == null || transcript.trim().isEmpty)) {
-        await _importRepo.updateStage(
-          jobId: jobId,
-          stage: ImportStage.transcribing,
-        );
-        // If transcript is not provided yet, we still proceed to structuring
-        // with the caption, but we log and preserve the stage if needed
-      }
 
       // Stage D: Structuring with Ollama Cloud
       await _importRepo.updateStage(
@@ -171,7 +167,12 @@ class ImportPipelineCoordinator {
       await _handleJobFailure(jobId, e.toString(), isTransient: e.statusCode != 401 && e.statusCode != 403);
     } on RecipeValidationException catch (e) {
       AppLogger.error('Recipe validation error on job $jobId: $e');
-      await _handleJobFailure(jobId, e.toString(), isTransient: false);
+      await _importRepo.updateStage(
+        jobId: jobId,
+        stage: ImportStage.needs_input,
+        status: JobStatus.pending,
+        error: e.message,
+      );
     } catch (e, stack) {
       AppLogger.error('Unexpected error processing job $jobId', error: e, stackTrace: stack);
       await _handleJobFailure(jobId, 'Failed to process recipe: ${AppLogger.sanitize(e.toString())}', isTransient: true);
@@ -208,7 +209,7 @@ class ImportPipelineCoordinator {
   /// Manually provide caption or transcript for a job in needs_input or failed state
   Future<void> submitManualInput(
     String jobId, {
-    required String caption,
+    String? caption,
     String? transcript,
   }) async {
     await _importRepo.updateStage(

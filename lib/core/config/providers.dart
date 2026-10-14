@@ -3,7 +3,6 @@ import '../database/app_database.dart'
     hide Recipe, Ingredient, RecipeStep, RecipeTag, ImportJob;
 import '../networking/ollama_client.dart';
 import '../storage/secure_storage_service.dart';
-import '../../features/extraction/audio_transcription_service.dart';
 import '../../features/extraction/content_extractor.dart';
 import '../../features/extraction/recipe_structurer.dart';
 import '../../features/importing/data/import_pipeline_coordinator.dart';
@@ -44,10 +43,6 @@ final contentExtractorProvider = Provider<ContentExtractor>((ref) {
 final recipeStructurerProvider = Provider<RecipeStructurer>((ref) {
   final client = ref.watch(ollamaClientProvider);
   return RecipeStructurer(ollamaClient: client);
-});
-
-final audioTranscriptionServiceProvider = Provider<AudioTranscriptionService>((ref) {
-  return AudioTranscriptionService();
 });
 
 final importCoordinatorProvider = Provider<ImportPipelineCoordinator>((ref) {

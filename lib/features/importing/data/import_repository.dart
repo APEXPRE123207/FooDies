@@ -57,6 +57,7 @@ class ImportRepository {
     required String sourceUrl,
     String? recipeId,
     String? rawCaption,
+    String? rawTranscript,
   }) async {
     final id = _uuid.v4();
     final now = DateTime.now();
@@ -71,6 +72,7 @@ class ImportRepository {
             attemptCount: const Value(0),
             maxRetries: const Value(3),
             rawCaption: Value(rawCaption),
+            rawTranscript: Value(rawTranscript),
             createdAt: Value(now),
             updatedAt: Value(now),
           ),

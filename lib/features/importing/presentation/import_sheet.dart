@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/url_parser.dart';
@@ -19,6 +18,7 @@ class ImportSheet extends ConsumerStatefulWidget {
 class _ImportSheetState extends ConsumerState<ImportSheet> {
   late TextEditingController _urlController;
   late TextEditingController _captionController;
+  late TextEditingController _transcriptController;
   bool _showCaptionField = false;
   String _detectedPlatform = 'web';
   bool _isSubmitting = false;
@@ -28,6 +28,7 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
     super.initState();
     _urlController = TextEditingController(text: widget.initialUrl ?? '');
     _captionController = TextEditingController();
+    _transcriptController = TextEditingController();
     if (widget.initialUrl != null) {
       _detectedPlatform = UrlParser.identifyPlatform(widget.initialUrl!);
     }
@@ -37,6 +38,7 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
   void dispose() {
     _urlController.dispose();
     _captionController.dispose();
+    _transcriptController.dispose();
     super.dispose();
   }
 
@@ -72,10 +74,12 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
     try {
       final coordinator = ref.read(importCoordinatorProvider);
       final caption = _captionController.text.trim();
+      final transcript = _transcriptController.text.trim();
 
       await coordinator.startImport(
         rawInput: rawInput,
         manualCaption: caption.isNotEmpty ? caption : null,
+        manualTranscript: transcript.isNotEmpty ? transcript : null,
       );
 
       if (mounted) {
@@ -89,7 +93,9 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Recipe import started in background!',
+                    transcript.isNotEmpty
+                        ? 'Recipe import started with transcript!'
+                        : 'Recipe import started in background!',
                     style: const TextStyle(color: AppColors.textPrimary),
                   ),
                 ),
@@ -186,7 +192,7 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
           ),
           const SizedBox(height: 12),
 
-          // Toggle manual caption
+          // Toggle manual overrides
           GestureDetector(
             onTap: () => setState(() => _showCaptionField = !_showCaptionField),
             child: Row(
@@ -197,12 +203,14 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
                   size: 20,
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  _showCaptionField ? 'Hide manual caption' : 'Add caption or notes manually (optional)',
-                  style: const TextStyle(
-                    color: AppColors.amber,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Text(
+                    _showCaptionField ? 'Hide manual text overrides' : 'Add custom caption or notes manually (optional)',
+                    style: const TextStyle(
+                      color: AppColors.amber,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -210,12 +218,15 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
           ),
 
           if (_showCaptionField) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
+
+            // Field 1: Post Caption Override
             TextField(
               controller: _captionController,
-              maxLines: 4,
+              maxLines: 3,
               decoration: InputDecoration(
-                hintText: 'Paste caption or transcript here if reel is private or caption was copied...',
+                labelText: 'Manual Caption Override (Optional)',
+                hintText: 'Paste written caption if you already copied it...',
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.content_paste, color: AppColors.primaryLight),
                   tooltip: 'Paste caption',
@@ -230,7 +241,49 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+
+            // Field 2: Custom Transcript Override
+            TextField(
+              controller: _transcriptController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: 'Manual Transcript Override (Optional)',
+                hintText: 'Paste custom transcript text if you have it...',
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.content_paste, color: AppColors.primaryLight),
+                      tooltip: 'Paste transcript',
+                      onPressed: () async {
+                        final data = await Clipboard.getData('text/plain');
+                        if (data?.text != null) {
+                          setState(() {
+                            _transcriptController.text = data!.text!.trim();
+                          });
+                        }
+                      },
+                    ),
+                    if (_transcriptController.text.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.clear, size: 18, color: AppColors.textMuted),
+                        tooltip: 'Clear transcript',
+                        onPressed: () {
+                          setState(() => _transcriptController.clear());
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
+            // -------------------------------------------------------------
+            // [COMMENTED OUT] InstaUstad 3rd-party caption service link
+            // Replaced by 100% in-app Headless WebView
+            // -------------------------------------------------------------
+            /*
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -256,7 +309,7 @@ class _ImportSheetState extends ConsumerState<ImportSheet> {
                 ),
               ],
             ),
-          ],
+            */
           const SizedBox(height: 18),
 
           // Submit button

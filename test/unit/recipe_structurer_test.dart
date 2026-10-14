@@ -124,5 +124,129 @@ void main() {
         throwsA(isA<RecipeValidationException>()),
       );
     });
+
+    test('successfully parses new rich schema with instructions, best_for badges, and times', () async {
+      final newSchemaJson = jsonEncode({
+        'is_valid_recipe': true,
+        'title': 'High Protein Paneer Tikka',
+        'description': 'Smoky oven baked paneer cubes packed with protein.',
+        'servings': {'amount': 3, 'is_estimated': false},
+        'times': {
+          'prep_time_minutes': 15,
+          'cook_time_minutes': 20,
+          'total_time_minutes': 35,
+          'is_estimated': false
+        },
+        'difficulty': 'Easy',
+        'best_for': {
+          'primary_badge': 'Muscle Gain / Bulking',
+          'fitness_and_gym': ['Muscle Gain / Bulking', 'Post-Workout Recovery'],
+          'diet_suitability': ['Vegetarian', 'High-Protein', 'Gluten-Free'],
+          'lifestyle_and_occasion': ['Bachelor / Beginner Friendly', 'Meal Prep / Tiffin Box'],
+          'suitability_reason': 'Delivers 35g of vegetarian protein with minimal prep.'
+        },
+        'nutrition_per_serving': {
+          'calories': 380,
+          'protein_g': 32.5,
+          'carbs_g': 12.0,
+          'fat_g': 22.0,
+          'macro_profile': 'High-Protein',
+          'is_estimated': false
+        },
+        'ingredients': [
+          {
+            'name': 'paneer',
+            'quantity': 400,
+            'unit': 'g',
+            'prep_note': 'cut into 1-inch cubes',
+            'is_optional': false,
+            'is_estimated': false
+          },
+          {
+            'name': 'Greek yogurt',
+            'quantity': 0.5,
+            'unit': 'cup',
+            'prep_note': 'for marinade',
+            'is_optional': false,
+            'is_estimated': false
+          },
+          {
+            'name': 'tikka masala spices',
+            'quantity': 2,
+            'unit': 'tbsp',
+            'prep_note': null,
+            'is_optional': false,
+            'is_estimated': false
+          }
+        ],
+        'instructions': [
+          {
+            'step_number': 1,
+            'instruction': 'Mix Greek yogurt and spices in a large bowl.',
+            'timer_minutes': 3
+          },
+          {
+            'step_number': 2,
+            'instruction': 'Coat paneer cubes evenly and marinate for 15 minutes.',
+            'timer_minutes': 15
+          },
+          {
+            'step_number': 3,
+            'instruction': 'Bake or air fry at 200C until edges are charred.',
+            'timer_minutes': 12
+          }
+        ],
+        'tags': {
+          'cuisine': ['Indian'],
+          'meal_type': ['Lunch', 'Dinner'],
+          'cooking_method': ['Air Fryer', 'Baked']
+        },
+        'search_keywords': ['paneer', 'tikka', 'high protein']
+      });
+
+      final mockClient = MockOllamaClient([newSchemaJson]);
+      final structurer = RecipeStructurer(ollamaClient: mockClient);
+
+      final recipe = await structurer.structureRecipe(
+        caption: 'High protein paneer tikka recipe...',
+        transcript: 'Today we are making high protein paneer tikka...',
+      );
+
+      expect(recipe.title, 'High Protein Paneer Tikka');
+      expect(recipe.servingCount, 3);
+      expect(recipe.prepTimeMinutes, 15);
+      expect(recipe.cookTimeMinutes, 20);
+      expect(recipe.totalTimeMinutes, 35);
+      expect(recipe.ingredients.length, 3);
+      expect(recipe.ingredients[0].notes, 'cut into 1-inch cubes');
+      expect(recipe.steps.length, 3);
+      expect(recipe.steps[0].instruction, 'Mix Greek yogurt and spices in a large bowl.');
+      expect(recipe.steps[0].durationMinutes, 3);
+      expect(recipe.nutrition.calories, 380);
+      expect(recipe.nutrition.proteinGrams, 32.5);
+      expect(recipe.tags.any((t) => t.name == 'Indian' && t.category == 'cuisine'), isTrue);
+      expect(recipe.tags.any((t) => t.name == 'Muscle Gain / Bulking' && t.category == 'fitness'), isTrue);
+      expect(recipe.tags.any((t) => t.name == 'Vegetarian' && t.category == 'diet'), isTrue);
+    });
+
+    test('throws RecipeValidationException when is_valid_recipe is false', () async {
+      final invalidPostJson = jsonEncode({
+        'is_valid_recipe': false,
+        'title': 'Non-recipe Video',
+        'ingredients': [],
+        'instructions': [],
+      });
+
+      final mockClient = MockOllamaClient([invalidPostJson, invalidPostJson]);
+      final structurer = RecipeStructurer(ollamaClient: mockClient);
+
+      expect(
+        () async => await structurer.structureRecipe(
+          caption: 'Watch my travel vlog!',
+          transcript: 'Hey guys we are traveling today',
+        ),
+        throwsA(isA<RecipeValidationException>()),
+      );
+    });
   });
 }

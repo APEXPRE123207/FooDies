@@ -1,12 +1,15 @@
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../core/utils/logger.dart';
 import '../../core/utils/url_parser.dart';
+import 'headless_webview_extractor.dart';
 
 class ExtractionResult {
   final String? title;
   final String? caption;
+  final String? transcript;
   final String? thumbnailUrl;
+  final String? videoUrl;
+  final String? extractionMethod;
   final bool isCaptionComplete;
   final bool requiresTranscription;
   final bool isFallbackRequired;
@@ -15,7 +18,10 @@ class ExtractionResult {
   const ExtractionResult({
     this.title,
     this.caption,
+    this.transcript,
     this.thumbnailUrl,
+    this.videoUrl,
+    this.extractionMethod,
     required this.isCaptionComplete,
     required this.requiresTranscription,
     this.isFallbackRequired = false,
@@ -25,17 +31,63 @@ class ExtractionResult {
 
 class ContentExtractor {
   final http.Client _httpClient;
+  final HeadlessWebviewExtractor _headlessExtractor;
 
-  ContentExtractor({http.Client? httpClient}) : _httpClient = httpClient ?? http.Client();
+  ContentExtractor({
+    http.Client? httpClient,
+    HeadlessWebviewExtractor? headlessExtractor,
+  })  : _httpClient = httpClient ?? http.Client(),
+        _headlessExtractor = headlessExtractor ?? HeadlessWebviewExtractor();
 
-  /// Attempts to extract accessible metadata and caption from social reel or web link
+  /// Attempts to extract accessible metadata, caption, and video speech from social reel or web link
   Future<ExtractionResult> extract(String rawUrl) async {
     final cleanUrl = UrlParser.normalizeUrl(rawUrl);
     final platform = UrlParser.identifyPlatform(cleanUrl);
 
     AppLogger.info('Extracting metadata for $platform URL: $cleanUrl');
 
-    // 1. For Instagram, prioritize InstaUstad caption service to bypass login walls
+    // 0. If YouTube, retrieve auto-generated transcript/captions directly from video
+    String? youtubeTranscript;
+    if (platform == 'youtube') {
+      youtubeTranscript = await _extractYouTubeTranscript(cleanUrl);
+    }
+
+    // 1. Primary: 100% In-App On-Device Headless WebView (zero external scrapers)
+    try {
+      final webviewResult = await _headlessExtractor.extract(cleanUrl);
+      if (webviewResult != null &&
+          ((webviewResult.caption != null && webviewResult.caption!.trim().isNotEmpty && _isValidSocialCaption(webviewResult.caption!)) ||
+           (webviewResult.transcript != null && webviewResult.transcript!.trim().isNotEmpty) ||
+           youtubeTranscript != null)) {
+        var cleanCaption = webviewResult.caption?.trim();
+        if (cleanCaption != null && platform == 'instagram') {
+          cleanCaption = _cleanInstagramDescription(cleanCaption);
+        }
+
+        final effectiveTranscript = youtubeTranscript ?? webviewResult.transcript?.trim();
+        final isComplete = cleanCaption != null && checkCompleteness(cleanCaption);
+        return ExtractionResult(
+          title: webviewResult.title ?? (platform == 'instagram' ? 'Instagram Reel Recipe' : 'Social Reel Recipe'),
+          caption: cleanCaption,
+          transcript: effectiveTranscript,
+          thumbnailUrl: webviewResult.thumbnailUrl,
+          videoUrl: webviewResult.videoUrl,
+          extractionMethod: webviewResult.extractionMethod,
+          isCaptionComplete: isComplete,
+          requiresTranscription: effectiveTranscript == null || effectiveTranscript.isEmpty,
+          isFallbackRequired: false,
+          platform: platform,
+        );
+      }
+    } catch (e) {
+      AppLogger.info('Headless in-app webview extractor error: $e');
+    }
+
+    // -------------------------------------------------------------
+    // [COMMENTED OUT] InstaUstad 3rd-party caption service
+    // Replaced by 100% on-device Headless In-App WebView above.
+    // -------------------------------------------------------------
+    /*
     if (platform == 'instagram') {
       final instaustadCaption = await _extractViaInstaUstad(cleanUrl);
       if (instaustadCaption != null && instaustadCaption.isNotEmpty) {
@@ -51,6 +103,7 @@ class ContentExtractor {
         );
       }
     }
+    */
 
     // 2. Direct web extraction via OpenGraph / meta tags
     try {
@@ -80,9 +133,10 @@ class ContentExtractor {
           return ExtractionResult(
             title: title,
             caption: description.trim(),
+            transcript: youtubeTranscript,
             thumbnailUrl: image,
             isCaptionComplete: isComplete,
-            requiresTranscription: !isComplete,
+            requiresTranscription: youtubeTranscript == null || youtubeTranscript.isEmpty,
             isFallbackRequired: false,
             platform: platform,
           );
@@ -96,12 +150,59 @@ class ContentExtractor {
     return ExtractionResult(
       title: null,
       caption: null,
+      transcript: youtubeTranscript,
       thumbnailUrl: null,
       isCaptionComplete: false,
-      requiresTranscription: true,
-      isFallbackRequired: true,
+      requiresTranscription: youtubeTranscript == null || youtubeTranscript.isEmpty,
+      isFallbackRequired: youtubeTranscript == null,
       platform: platform,
     );
+  }
+
+  Future<String?> _extractYouTubeTranscript(String url) async {
+    try {
+      final regExp = RegExp(
+        r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})',
+        caseSensitive: false,
+      );
+      final match = regExp.firstMatch(url);
+      final videoId = match?.group(1);
+      if (videoId == null) return null;
+
+      final res = await _httpClient.get(
+        Uri.parse('https://www.youtube.com/watch?v=$videoId'),
+        headers: {
+          'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+      );
+
+      if (res.statusCode == 200) {
+        final body = res.body;
+        final matchTrack = RegExp(r'"captionTracks":\s*\[\s*\{[^}]*"baseUrl":\s*"([^"]+)"', caseSensitive: false).firstMatch(body);
+        if (matchTrack != null) {
+          final rawUrl = matchTrack.group(1)?.replaceAll(r'\u0026', '&');
+          if (rawUrl != null) {
+            final trackRes = await _httpClient.get(Uri.parse(rawUrl));
+            if (trackRes.statusCode == 200) {
+              final xmlMatches = RegExp(r'<text[^>]*>([\s\S]*?)<\/text>', caseSensitive: false).allMatches(trackRes.body);
+              final lines = xmlMatches
+                  .map((m) => _decodeHtmlEntities(m.group(1))?.trim() ?? '')
+                  .where((t) => t.isNotEmpty)
+                  .toList();
+              if (lines.isNotEmpty) {
+                AppLogger.info('Extracted YouTube auto-generated video transcript (${lines.length} lines)');
+                return lines.join(' ');
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      AppLogger.info('YouTube transcript extraction skipped: $e');
+    }
+    return null;
   }
 
   bool _isValidSocialCaption(String text) {
@@ -141,7 +242,10 @@ class ContentExtractor {
     return raw;
   }
 
-  /// Extracts caption from public Instagram reels using InstaUstad service
+  // -------------------------------------------------------------
+  // [COMMENTED OUT] InstaUstad caption implementation
+  // -------------------------------------------------------------
+  /*
   Future<String?> _extractViaInstaUstad(String instagramUrl) async {
     try {
       AppLogger.info('Attempting Instagram caption extraction via InstaUstad...');
@@ -175,6 +279,7 @@ class ContentExtractor {
     }
     return null;
   }
+  */
 
   /// Stage B: Completeness detection
   /// Determines whether the caption already contains sufficient ingredients & instructions
