@@ -130,7 +130,6 @@ void main() {
 
       // Recipe count indicator
       expect(find.text('RECIPE 1 OF 2'), findsOneWidget);
-      expect(find.text('Swipe to loop'), findsOneWidget);
 
       // Flashcard dish title is visible in the carousel
       expect(find.text('Grilled Garlic Herb Chicken'), findsWidgets);

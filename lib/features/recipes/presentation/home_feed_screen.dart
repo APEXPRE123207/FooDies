@@ -113,33 +113,17 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
                       // Card count indicator
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'RECIPE ${_currentIndex + 1} OF $total',
-                              style: const TextStyle(
-                                color: Color(0xFFA8A29E),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1.5,
-                              ),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'RECIPE ${_currentIndex + 1} OF $total',
+                            style: const TextStyle(
+                              color: Color(0xFFA8A29E),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.5,
                             ),
-                            const Row(
-                              children: [
-                                Icon(Icons.swipe, size: 14, color: Color(0xFFA8A29E)),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Swipe to loop',
-                                  style: TextStyle(
-                                    color: Color(0xFFA8A29E),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                          ),
                         ),
                       ),
 
