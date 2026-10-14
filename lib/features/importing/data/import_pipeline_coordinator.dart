@@ -3,8 +3,8 @@ import 'dart:math';
 import 'package:foodies/core/networking/ollama_client.dart';
 import 'package:foodies/core/utils/logger.dart';
 import 'package:foodies/core/utils/url_parser.dart';
-import 'package:foodies/features/extraction/audio_transcription_service.dart';
 import 'package:foodies/features/extraction/content_extractor.dart';
+import 'package:foodies/features/extraction/local_whisper_transcription_service.dart';
 import 'package:foodies/features/extraction/recipe_structurer.dart';
 import 'package:foodies/features/recipes/data/recipe_repository.dart';
 import 'package:foodies/features/importing/domain/import_job.dart';
@@ -15,7 +15,7 @@ class ImportPipelineCoordinator {
   final RecipeRepository _recipeRepo;
   final ContentExtractor _extractor;
   final RecipeStructurer _structurer;
-  final AudioTranscriptionService _transcriptionService;
+  final LocalWhisperTranscriptionService? _whisperService;
 
   final Map<String, Future<void>> _inFlightFutures = {};
 
@@ -24,12 +24,12 @@ class ImportPipelineCoordinator {
     required RecipeRepository recipeRepo,
     required ContentExtractor extractor,
     required RecipeStructurer structurer,
-    AudioTranscriptionService? transcriptionService,
+    LocalWhisperTranscriptionService? whisperService,
   })  : _importRepo = importRepo,
         _recipeRepo = recipeRepo,
         _extractor = extractor,
         _structurer = structurer,
-        _transcriptionService = transcriptionService ?? AudioTranscriptionService();
+        _whisperService = whisperService;
 
   /// Start a new import pipeline from a URL or shared text
   Future<ImportJobEntity> startImport({
@@ -122,17 +122,22 @@ class ImportPipelineCoordinator {
           transcript = result.transcript!.trim();
         }
 
-        // Stage B (Zero-Mic Native Fallback): If auto-captions were missing,
-        // decode and transcribe audio directly from the video stream
-        if ((transcript == null || transcript.trim().isEmpty) && result.videoUrl != null) {
+        // Run on-device local Whisper transcription if videoUrl is available and transcript is missing
+        final videoUrl = result.videoUrl;
+        final whisperService = _whisperService;
+        if ((transcript == null || transcript.trim().isEmpty) &&
+            videoUrl != null &&
+            videoUrl.isNotEmpty &&
+            whisperService != null) {
           try {
-            final nativeTranscript = await _transcriptionService.transcribeVideoStream(result.videoUrl);
-            if (nativeTranscript != null && nativeTranscript.trim().isNotEmpty) {
-              transcript = nativeTranscript.trim();
-              AppLogger.info('Stage B zero-mic audio transcription extracted: ${transcript.length} chars');
+            AppLogger.info('Extracting audio track & transcribing with on-device Whisper: $videoUrl');
+            final whisperTranscript = await whisperService.transcribeReelAudio(videoUrl);
+            if (whisperTranscript != null && whisperTranscript.trim().isNotEmpty) {
+              transcript = whisperTranscript.trim();
+              AppLogger.info('On-device Whisper transcription succeeded: ${transcript.length} chars');
             }
-          } catch (e) {
-            AppLogger.info('Stage B native video transcription non-fatal error: $e');
+          } catch (err) {
+            AppLogger.warn('On-device Whisper transcription failed or skipped: $err');
           }
         }
 

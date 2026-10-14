@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../core/utils/logger.dart';
 import '../../core/utils/url_parser.dart';
@@ -11,7 +10,6 @@ class HeadlessWebviewResult {
   final String? title;
   final String? thumbnailUrl;
   final String? videoUrl;
-  final String? subtitleUrl;
   final String extractionMethod;
 
   const HeadlessWebviewResult({
@@ -20,7 +18,6 @@ class HeadlessWebviewResult {
     this.title,
     this.thumbnailUrl,
     this.videoUrl,
-    this.subtitleUrl,
     required this.extractionMethod,
   });
 }
@@ -40,44 +37,9 @@ class HeadlessWebviewExtractor {
     var extractedThumbnail = null;
     var extractedVideoUrl = null;
     var extractedTranscript = null;
-    var extractedSubtitleUrl = null;
     var method = 'unknown';
 
-    // 0. Extract hidden .vtt auto-captions track from player manifests (YouTube, Instagram, TikTok)
-    try {
-      var htmlContent = document.documentElement.innerHTML;
-
-      // 1. YOUTUBE SHORTS: Grab ASR captionTrack baseUrl from ytInitialPlayerResponse
-      if (window.ytInitialPlayerResponse && 
-          window.ytInitialPlayerResponse.captions &&
-          window.ytInitialPlayerResponse.captions.playerCaptionsTracklistRenderer) {
-        var ytTracks = window.ytInitialPlayerResponse.captions.playerCaptionsTracklistRenderer.captionTracks;
-        if (ytTracks && ytTracks.length > 0 && ytTracks[0].baseUrl) {
-          extractedSubtitleUrl = ytTracks[0].baseUrl + "&fmt=vtt";
-        }
-      }
-
-      // 2. INSTAGRAM REELS: Extract .vtt BaseURL from video_dash_manifest inside script JSON
-      if (!extractedSubtitleUrl) {
-        var igDashMatch = htmlContent.match(/AdaptationSet[^>]*contentType=\\?"text\\?"[\s\S]*?<BaseURL>([^<]+)<\/BaseURL>/i);
-        if (igDashMatch && igDashMatch[1]) {
-          extractedSubtitleUrl = igDashMatch[1]
-            .replace(/\\u0026/g, '&')
-            .replace(/&amp;/g, '&')
-            .replace(/\\\//g, '/');
-        }
-      }
-
-      // 3. TIKTOK: Extract WebVTT URL from __UNIVERSAL_DATA_FOR_REHYDRATION__
-      if (!extractedSubtitleUrl) {
-        var ttSubMatch = htmlContent.match(/"Url":"(https:\/\/[^"]+webvtt[^"]+)"/i);
-        if (ttSubMatch && ttSubMatch[1]) {
-          extractedSubtitleUrl = ttSubMatch[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/');
-        }
-      }
-    } catch(e) {}
-
-    // 0.1 Extract direct Video URL and video subtitle tracks if available
+    // 0. Extract direct Video URL and video subtitle tracks if available
     var video = document.querySelector('video');
     if (video) {
       extractedVideoUrl = video.src || (video.querySelector('source') ? video.querySelector('source').src : null);
@@ -224,11 +186,10 @@ class HeadlessWebviewExtractor {
       }
     }
 
-    if (extractedCaption || extractedTranscript || extractedSubtitleUrl || extractedVideoUrl) {
+    if (extractedCaption || extractedTranscript) {
       return JSON.stringify({
         caption: extractedCaption,
         transcript: extractedTranscript,
-        subtitleUrl: extractedSubtitleUrl,
         title: extractedTitle,
         thumbnail: extractedThumbnail,
         videoUrl: extractedVideoUrl,
@@ -242,31 +203,6 @@ class HeadlessWebviewExtractor {
   }
 })();
 ''';
-
-  /// Converts raw WebVTT auto-captions into a clean, spoken transcript
-  static String parseVttToCleanTranscript(String rawVtt) {
-    final lines = rawVtt.split('\n');
-    final buffer = <String>[];
-
-    for (var line in lines) {
-      final trimmed = line.trim();
-      // Skip WebVTT headers, timestamps (00:00:01.000 --> 00:00:03.000), and numeric cue IDs
-      if (trimmed.isEmpty ||
-          trimmed.startsWith('WEBVTT') ||
-          trimmed.startsWith('Kind:') ||
-          trimmed.startsWith('Language:') ||
-          trimmed.contains('-->') ||
-          RegExp(r'^\d+$').hasMatch(trimmed)) {
-        continue;
-      }
-      // Strip inline HTML/VTT tags like <c>, <00:00:01.200>, etc.
-      final cleanLine = trimmed.replaceAll(RegExp(r'<[^>]+>'), '').trim();
-      if (cleanLine.isNotEmpty && (buffer.isEmpty || buffer.last != cleanLine)) {
-        buffer.add(cleanLine);
-      }
-    }
-    return buffer.join(' ');
-  }
 
   /// Extracts caption and metadata using an in-memory WebViewController
   Future<HeadlessWebviewResult?> extract(String rawUrl, {Duration timeout = const Duration(seconds: 14)}) async {
@@ -336,43 +272,16 @@ class HeadlessWebviewExtractor {
         final dynamic decoded = jsonDecode(rawJson);
         if (decoded is Map<String, dynamic>) {
           final caption = decoded['caption']?.toString();
-          var transcript = decoded['transcript']?.toString();
-          final subtitleUrl = decoded['subtitleUrl']?.toString();
-          final videoUrl = decoded['videoUrl']?.toString();
-          final title = decoded['title']?.toString();
-          final thumbnailUrl = decoded['thumbnail']?.toString();
-          final method = decoded['method']?.toString() ?? 'webview-dom';
-
-          // Stage A (Fast Path): If hidden .vtt auto-caption track was extracted, download and parse
-          if ((transcript == null || transcript.trim().isEmpty) &&
-              subtitleUrl != null &&
-              subtitleUrl.trim().isNotEmpty) {
-            try {
-              AppLogger.info('Stage A: Downloading hidden .vtt auto-captions from: $subtitleUrl');
-              final vttResp = await http.get(Uri.parse(subtitleUrl)).timeout(const Duration(seconds: 4));
-              if (vttResp.statusCode == 200 && vttResp.body.isNotEmpty) {
-                final parsed = parseVttToCleanTranscript(vttResp.body);
-                if (parsed.trim().isNotEmpty) {
-                  transcript = parsed.trim();
-                  AppLogger.info('Stage A: Parsed .vtt transcript successfully (${transcript.length} chars)');
-                }
-              }
-            } catch (e) {
-              AppLogger.info('Stage A: Failed to fetch/parse .vtt track: $e');
-            }
-          }
-
+          final transcript = decoded['transcript']?.toString();
           if ((caption != null && caption.trim().isNotEmpty) ||
-              (transcript != null && transcript.trim().isNotEmpty) ||
-              (videoUrl != null && videoUrl.trim().isNotEmpty)) {
+              (transcript != null && transcript.trim().isNotEmpty)) {
             completer.complete(HeadlessWebviewResult(
               caption: caption?.trim(),
               transcript: transcript?.trim(),
-              title: title,
-              thumbnailUrl: thumbnailUrl,
-              videoUrl: videoUrl,
-              subtitleUrl: subtitleUrl,
-              extractionMethod: method,
+              title: decoded['title']?.toString(),
+              thumbnailUrl: decoded['thumbnail']?.toString(),
+              videoUrl: decoded['videoUrl']?.toString(),
+              extractionMethod: decoded['method']?.toString() ?? 'webview-dom',
             ));
             return;
           }

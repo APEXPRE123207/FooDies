@@ -342,21 +342,33 @@ class _IngredientSwapModalState extends ConsumerState<IngredientSwapModal>
 
           // Tab Selector: AI Recommendations vs Chef Q&A
           Container(
-            height: 42,
-            padding: const EdgeInsets.all(3),
+            height: 44,
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.border),
             ),
             child: TabBar(
               controller: _tabController,
+              dividerColor: Colors.transparent,
+              indicatorSize: TabBarIndicatorSize.tab,
               indicator: BoxDecoration(
-                color: AppColors.surfaceElevated,
-                borderRadius: BorderRadius.circular(9),
-                border: Border.all(color: AppColors.border),
+                gradient: const LinearGradient(
+                  colors: [AppColors.primary, Color(0xFFEA580C)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              labelColor: AppColors.primary,
+              labelColor: Colors.white,
               unselectedLabelColor: AppColors.textSecondary,
               labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
               unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
@@ -364,10 +376,9 @@ class _IngredientSwapModalState extends ConsumerState<IngredientSwapModal>
                 Tab(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.auto_awesome, size: 14),
-                      SizedBox(width: 5),
+                      SizedBox(width: 6),
                       Text('AI Swaps'),
                     ],
                   ),
@@ -375,10 +386,9 @@ class _IngredientSwapModalState extends ConsumerState<IngredientSwapModal>
                 Tab(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.question_answer_outlined, size: 14),
-                      SizedBox(width: 5),
+                      SizedBox(width: 6),
                       Text('Ask Chef'),
                     ],
                   ),
@@ -589,22 +599,28 @@ class _IngredientSwapModalState extends ConsumerState<IngredientSwapModal>
                             ),
                           ),
                         ),
-                        if (sub.dietary != null && sub.dietary!.isNotEmpty) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.badgeVegetarian.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              sub.dietary!,
-                              style: const TextStyle(
-                                color: AppColors.badgeVegetarian,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
+                        if (sub.dietary != null && sub.dietary!.trim().isNotEmpty) ...[
+                          ...sub.dietary!
+                              .split(',')
+                              .map((tag) => tag.trim())
+                              .where((tag) => tag.isNotEmpty)
+                              .map(
+                                (tag) => Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.badgeVegetarian.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    tag,
+                                    style: const TextStyle(
+                                      color: AppColors.badgeVegetarian,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
                         ],
                       ],
                     ),

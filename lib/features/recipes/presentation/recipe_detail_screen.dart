@@ -504,7 +504,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
   Widget _buildTimeStatsRow(Recipe recipe) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -514,13 +514,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         children: [
           Expanded(
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildTimeStat('PREP', recipe.prepTimeMinutes != null ? '${recipe.prepTimeMinutes}m' : '--'),
+                Expanded(child: _buildTimeStat('PREP', recipe.prepTimeMinutes != null ? '${recipe.prepTimeMinutes}m' : '--')),
                 Container(width: 1, height: 26, color: AppColors.border),
-                _buildTimeStat('COOK', recipe.cookTimeMinutes != null ? '${recipe.cookTimeMinutes}m' : '--'),
+                Expanded(child: _buildTimeStat('COOK', recipe.cookTimeMinutes != null ? '${recipe.cookTimeMinutes}m' : '--')),
                 Container(width: 1, height: 26, color: AppColors.border),
-                _buildTimeStat('TOTAL', recipe.formattedTime),
+                Expanded(child: _buildTimeStat('TOTAL', recipe.formattedTime)),
               ],
             ),
           ),
@@ -557,10 +556,13 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
   Widget _buildTimeStat(String title, String value) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: AppColors.textMuted,
             fontSize: 10,
@@ -569,12 +571,15 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          value,
-          style: AppTheme.tabularFigures(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: AppTheme.tabularFigures(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
       ],
@@ -1039,14 +1044,19 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Nutrition Per Serving',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
+              const Expanded(
+                child: Text(
+                  'Nutrition Per Serving',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               StatusBadge(
                 label: methodLabel,
                 color: methodColor,
@@ -1081,9 +1091,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
   Widget _buildNutrientStat(String title, String value, String unit, Color color) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: color,
             fontSize: 10,
@@ -1092,27 +1105,30 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              value,
-              style: AppTheme.tabularFigures(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                value,
+                style: AppTheme.tabularFigures(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-            const SizedBox(width: 2),
-            Text(
-              unit,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 11,
+              const SizedBox(width: 2),
+              Text(
+                unit,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -1308,144 +1324,45 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         child: ExpansionTile(
           shape: const Border(),
           collapsedShape: const Border(),
-          leading: Icon(
-            hasTranscript ? Icons.graphic_eq : Icons.notes_rounded,
-            color: hasTranscript ? AppColors.saffronGold : AppColors.textMuted,
-            size: 22,
-          ),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  hasTranscript ? 'Caption & Audio Transcript' : 'Original Post Caption',
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: hasTranscript
-                      ? AppColors.badgeVegetarian.withValues(alpha: 0.15)
-                      : AppColors.surfaceElevated,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: hasTranscript
-                        ? AppColors.badgeVegetarian.withValues(alpha: 0.3)
-                        : AppColors.border,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (hasTranscript) ...[
-                      const Icon(Icons.check, size: 12, color: AppColors.badgeVegetarian),
-                      const SizedBox(width: 4),
-                    ],
-                    Text(
-                      hasTranscript ? 'Audio Captured' : 'Caption Only',
-                      style: TextStyle(
-                        color: hasTranscript ? AppColors.badgeVegetarian : AppColors.textMuted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          title: Text(
+            hasTranscript ? 'Original Caption & Video Transcript' : 'Original Post Caption',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           iconColor: AppColors.textSecondary,
           collapsedIconColor: AppColors.textMuted,
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          childrenPadding: const EdgeInsets.all(16),
           children: [
-            const Divider(color: AppColors.border, height: 1),
-            const SizedBox(height: 14),
-
             if (hasCaption) ...[
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Row(
-                  children: [
-                    Icon(Icons.description_outlined, size: 14, color: AppColors.amber),
-                    SizedBox(width: 6),
-                    Text(
-                      'Original Written Caption:',
-                      style: TextStyle(color: AppColors.amber, fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                  ],
+                child: Text(
+                  'Original Caption:',
+                  style: TextStyle(color: AppColors.amber, fontWeight: FontWeight.bold, fontSize: 13),
                 ),
               ),
               const SizedBox(height: 6),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Text(
-                  recipe.sourceCaption!,
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.45),
-                ),
+              Text(
+                recipe.sourceCaption!,
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
               ),
-              const SizedBox(height: 14),
+              if (hasTranscript) const SizedBox(height: 14),
             ],
-
             if (hasTranscript) ...[
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Row(
-                  children: [
-                    Icon(Icons.record_voice_over_outlined, size: 14, color: AppColors.saffronGold),
-                    SizedBox(width: 6),
-                    Text(
-                      'Spoken Audio Transcript (from video):',
-                      style: TextStyle(color: AppColors.saffronGold, fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                  ],
+                child: Text(
+                  'Video Transcript:',
+                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13),
                 ),
               ),
               const SizedBox(height: 6),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.saffronGold.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.saffronGold.withValues(alpha: 0.2)),
-                ),
-                child: Text(
-                  recipe.transcript!,
-                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, height: 1.45),
-                ),
-              ),
-            ] else ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.info_outline, size: 16, color: AppColors.textMuted),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'No spoken audio transcript was captured for this video. The recipe steps and ingredients were structured directly from the creator\'s post caption.',
-                        style: TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.4),
-                      ),
-                    ),
-                  ],
-                ),
+              Text(
+                recipe.transcript!,
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
               ),
             ],
           ],

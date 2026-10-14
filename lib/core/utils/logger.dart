@@ -30,6 +30,16 @@ class AppLogger {
     dev.log(clean, name: tag ?? 'Foodies:Debug', level: 500);
   }
 
+  static void warn(String message, {String? tag, Object? error}) {
+    final clean = sanitize(message);
+    dev.log(
+      clean,
+      name: tag ?? 'Foodies:Warn',
+      error: error != null ? sanitize(error.toString()) : null,
+      level: 900,
+    );
+  }
+
   static void error(
     String message, {
     String? tag,

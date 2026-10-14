@@ -224,33 +224,35 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         );
       },
       child: Container(
-        height: 108,
+        constraints: const BoxConstraints(minHeight: 108),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppColors.border),
         ),
-        child: Row(
-          children: [
-            // Thumbnail
-            SizedBox(
-              width: 108,
-              height: 108,
-              child: RecipeCardImage(
-                imagePath: recipe.imagePath,
-                title: recipe.title,
-                borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Thumbnail
+              SizedBox(
+                width: 108,
+                child: RecipeCardImage(
+                  imagePath: recipe.imagePath,
+                  title: recipe.title,
+                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+                ),
               ),
-            ),
-            const SizedBox(width: 14),
-            // Info
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+              const SizedBox(width: 14),
+              // Info
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                     Text(
                       recipe.title,
                       maxLines: 1,
@@ -262,26 +264,31 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Row(
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 2,
                       children: [
-                        const Icon(Icons.timer_outlined, size: 14, color: AppColors.textSecondary),
-                        const SizedBox(width: 4),
-                        Text(
-                          recipe.formattedTime,
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.timer_outlined, size: 13, color: AppColors.textSecondary),
+                            const SizedBox(width: 3),
+                            Text(
+                              recipe.formattedTime,
+                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
                         Text(
                           '${recipe.ingredients.length} ing.',
-                          style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                          style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
                         ),
-                        if (recipe.nutrition.calories != null) ...[
-                          const SizedBox(width: 10),
+                        if (recipe.nutrition.calories != null)
                           Text(
                             '${recipe.nutrition.calories!.toInt()} kcal',
-                            style: const TextStyle(color: AppColors.primaryLight, fontSize: 12),
+                            style: const TextStyle(color: AppColors.primaryLight, fontSize: 11),
                           ),
-                        ],
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -303,6 +310,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }

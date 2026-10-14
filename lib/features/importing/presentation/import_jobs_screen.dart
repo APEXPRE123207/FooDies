@@ -205,47 +205,6 @@ class ImportJobsScreen extends ConsumerWidget {
             ),
           ],
 
-          // Captured Caption indicator
-          if (job.rawCaption != null && job.rawCaption!.trim().isNotEmpty) ...[
-            Container(
-              margin: const EdgeInsets.only(top: 2, bottom: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceElevated,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.description_outlined, size: 14, color: AppColors.amber),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Caption Captured:',
-                          style: TextStyle(
-                            color: AppColors.amber,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          job.rawCaption!,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
 
           // Error or status note
           if (job.lastError != null) ...[

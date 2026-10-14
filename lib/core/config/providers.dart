@@ -3,8 +3,8 @@ import '../database/app_database.dart'
     hide Recipe, Ingredient, RecipeStep, RecipeTag, ImportJob;
 import '../networking/ollama_client.dart';
 import '../storage/secure_storage_service.dart';
-import '../../features/extraction/audio_transcription_service.dart';
 import '../../features/extraction/content_extractor.dart';
+import '../../features/extraction/local_whisper_transcription_service.dart';
 import '../../features/extraction/recipe_structurer.dart';
 import '../../features/importing/data/import_pipeline_coordinator.dart';
 import '../../features/importing/data/import_repository.dart';
@@ -47,8 +47,8 @@ final contentExtractorProvider = Provider<ContentExtractor>((ref) {
   return ContentExtractor();
 });
 
-final audioTranscriptionServiceProvider = Provider<AudioTranscriptionService>((ref) {
-  return AudioTranscriptionService();
+final whisperTranscriptionServiceProvider = Provider<LocalWhisperTranscriptionService>((ref) {
+  return LocalWhisperTranscriptionService();
 });
 
 final recipeStructurerProvider = Provider<RecipeStructurer>((ref) {
@@ -61,14 +61,14 @@ final importCoordinatorProvider = Provider<ImportPipelineCoordinator>((ref) {
   final recipeRepo = ref.watch(recipeRepositoryProvider);
   final extractor = ref.watch(contentExtractorProvider);
   final structurer = ref.watch(recipeStructurerProvider);
-  final transcriptionService = ref.watch(audioTranscriptionServiceProvider);
+  final whisperService = ref.watch(whisperTranscriptionServiceProvider);
 
   final coordinator = ImportPipelineCoordinator(
     importRepo: importRepo,
     recipeRepo: recipeRepo,
     extractor: extractor,
     structurer: structurer,
-    transcriptionService: transcriptionService,
+    whisperService: whisperService,
   );
 
   // Trigger background job recovery
