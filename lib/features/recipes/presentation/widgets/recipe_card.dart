@@ -56,10 +56,81 @@ class RecipeFlashcard extends ConsumerWidget {
     return null;
   }
 
+  Color _resolveCardGlowColor(Recipe recipe) {
+    final badge = (recipe.primaryBadge ?? '').toLowerCase();
+    final macro = (recipe.macroProfile ?? '').toLowerCase();
+    final title = recipe.title.toLowerCase();
+    final tags = recipe.tags.map((t) => t.name.toLowerCase()).join(' ');
+
+    // 1. High-Protein / Muscle / Chicken / Egg specials -> Vibrant Emerald Green
+    if (badge.contains('protein') ||
+        badge.contains('muscle') ||
+        macro.contains('protein') ||
+        title.contains('chicken') ||
+        title.contains('egg') ||
+        tags.contains('gym') ||
+        (recipe.nutrition.proteinGrams != null && recipe.nutrition.proteinGrams! >= 25)) {
+      return const Color(0xFF10B981); // Emerald
+    }
+
+    // 2. Fat Loss / Clean Eating / Low Calorie -> Electric Cyan
+    if (badge.contains('fat loss') ||
+        badge.contains('cut') ||
+        tags.contains('clean') ||
+        tags.contains('fat loss') ||
+        (recipe.nutrition.calories != null && recipe.nutrition.calories! <= 450)) {
+      return const Color(0xFF06B6D4); // Electric Cyan
+    }
+
+    // 3. Cheat Meal / Pizza / High Calorie -> Flame Orange
+    if (badge.contains('cheat') ||
+        title.contains('pizza') ||
+        title.contains('burger') ||
+        recipe.isFavorite ||
+        (recipe.nutrition.calories != null && recipe.nutrition.calories! > 600)) {
+      return const Color(0xFFFF6E2E); // Flame Orange
+    }
+
+    // 4. Vegetarian / Vegan / Paneer / Plant -> Fresh Mint Green
+    if (badge.contains('veg') ||
+        badge.contains('plant') ||
+        title.contains('paneer') ||
+        title.contains('tofu') ||
+        tags.contains('veg') ||
+        tags.contains('vegetarian')) {
+      return const Color(0xFF22C55E); // Mint Green
+    }
+
+    // 5. Quick / Hostel / 10-Min -> Warm Amber Gold
+    if (tags.contains('hostel') ||
+        tags.contains('quick') ||
+        (recipe.effectiveTotalTime != null && recipe.effectiveTotalTime! <= 15)) {
+      return const Color(0xFFFBBF24); // Warm Amber Gold
+    }
+
+    // 6. Desserts / Sweet -> Berry Pink
+    if (title.contains('sweet') || title.contains('dessert') || tags.contains('dessert')) {
+      return const Color(0xFFEC4899); // Berry Pink
+    }
+
+    // 7. Deterministic culinary neon glow palette based on recipe id or title
+    const vibrantGlows = [
+      Color(0xFFFF6E2E), // Flame Orange
+      Color(0xFF10B981), // Emerald
+      Color(0xFF06B6D4), // Electric Cyan
+      Color(0xFFF59E0B), // Warm Gold
+      Color(0xFF8B5CF6), // Royal Purple
+      Color(0xFFEC4899), // Neon Pink
+    ];
+    final seed = (recipe.id + recipe.title).hashCode.abs();
+    return vibrantGlows[seed % vibrantGlows.length];
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final heroBadge = _resolveHeroBadge();
     final badgeColor = heroBadge != null ? _resolveBadgeColor(heroBadge) : AppColors.amber;
+    final glowColor = _resolveCardGlowColor(recipe);
 
     return GestureDetector(
       onTap: () {
@@ -74,12 +145,30 @@ class RecipeFlashcard extends ConsumerWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: AppColors.border, width: 1),
+          border: Border.all(
+            color: glowColor.withOpacity(0.35),
+            width: 1.2,
+          ),
           boxShadow: [
+            // 1. Wide diffused ambient glow lighting up the dark obsidian backdrop
+            BoxShadow(
+              color: glowColor.withOpacity(0.32),
+              blurRadius: 44,
+              spreadRadius: 3,
+              offset: const Offset(0, 10),
+            ),
+            // 2. Focused vibrant inner halo
+            BoxShadow(
+              color: glowColor.withOpacity(0.18),
+              blurRadius: 20,
+              spreadRadius: 1,
+              offset: const Offset(0, 4),
+            ),
+            // 3. Grounding dark drop shadow for card depth
             BoxShadow(
               color: Colors.black.withOpacity(0.65),
-              blurRadius: 32,
-              offset: const Offset(0, 16),
+              blurRadius: 28,
+              offset: const Offset(0, 14),
             ),
           ],
         ),
