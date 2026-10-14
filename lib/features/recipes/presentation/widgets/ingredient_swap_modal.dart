@@ -796,15 +796,32 @@ class _IngredientSwapModalState extends ConsumerState<IngredientSwapModal>
   }
 
   Widget _buildQuickPromptChip(String text) {
-    return ActionChip(
-      backgroundColor: AppColors.surface,
-      side: const BorderSide(color: AppColors.border),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      label: Text(
-        text,
-        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => _sendChefQuestion(text),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.auto_awesome, size: 12, color: AppColors.amber),
+            const SizedBox(width: 6),
+            Text(
+              text,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
-      onPressed: () => _sendChefQuestion(text),
     );
   }
 
@@ -813,90 +830,144 @@ class _IngredientSwapModalState extends ConsumerState<IngredientSwapModal>
       return Align(
         alignment: Alignment.centerRight,
         child: Container(
-          margin: const EdgeInsets.only(bottom: 10, left: 40),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          margin: const EdgeInsets.only(bottom: 12, left: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(14).copyWith(bottomRight: Radius.zero),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+            gradient: const LinearGradient(
+              colors: [AppColors.primary, Color(0xFFEA580C)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(18),
+              topRight: Radius.circular(18),
+              bottomLeft: Radius.circular(18),
+              bottomRight: Radius.circular(4),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.25),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Text(
             msg.text,
             style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 13,
+              color: Colors.white,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
+              height: 1.35,
             ),
           ),
         ),
       );
     }
 
-    // Chef response
+    // Chef response bubble with avatar & modern card styling
     final isAffirmative = msg.isAffirmative;
     Color verdictBg = AppColors.surfaceElevated;
     Color verdictFg = AppColors.textPrimary;
     IconData verdictIcon = Icons.info_outline;
 
     if (isAffirmative == true) {
-      verdictBg = AppColors.badgeVegetarian.withValues(alpha: 0.2);
+      verdictBg = AppColors.badgeVegetarian.withValues(alpha: 0.15);
       verdictFg = AppColors.badgeVegetarian;
       verdictIcon = Icons.check_circle;
     } else if (isAffirmative == false) {
-      verdictBg = AppColors.macroCalories.withValues(alpha: 0.2);
+      verdictBg = AppColors.macroCalories.withValues(alpha: 0.15);
       verdictFg = AppColors.macroCalories;
       verdictIcon = Icons.cancel;
     }
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12, right: 30),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14).copyWith(bottomLeft: Radius.zero),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (msg.directVerdict != null) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                margin: const EdgeInsets.only(bottom: 6),
-                decoration: BoxDecoration(
-                  color: verdictBg,
-                  borderRadius: BorderRadius.circular(6),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14, right: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Chef circular avatar
+          Container(
+            width: 32,
+            height: 32,
+            margin: const EdgeInsets.only(right: 10, top: 2),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceElevated,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.saffronGold.withValues(alpha: 0.4)),
+            ),
+            child: const Icon(Icons.soup_kitchen, size: 16, color: AppColors.saffronGold),
+          ),
+
+          // Message card
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(4),
+                  topRight: Radius.circular(18),
+                  bottomLeft: Radius.circular(18),
+                  bottomRight: Radius.circular(18),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(verdictIcon, size: 14, color: verdictFg),
-                    const SizedBox(width: 4),
-                    Text(
-                      msg.directVerdict!,
-                      style: TextStyle(
-                        color: verdictFg,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
+                border: Border.all(color: AppColors.border),
               ),
-            ],
-            Text(
-              msg.text,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 13,
-                height: 1.35,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (msg.directVerdict != null) ...[
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: verdictBg,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(verdictIcon, size: 14, color: verdictFg),
+                              const SizedBox(width: 5),
+                              Text(
+                                msg.directVerdict!,
+                                style: TextStyle(
+                                  color: verdictFg,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'AI Sous-Chef',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  Text(
+                    msg.text,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 13.5,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

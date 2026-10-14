@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:foodies/core/networking/ollama_client.dart';
 import 'package:foodies/core/utils/logger.dart';
 import 'package:foodies/core/utils/url_parser.dart';
+import 'package:foodies/features/extraction/audio_transcription_service.dart';
 import 'package:foodies/features/extraction/content_extractor.dart';
 import 'package:foodies/features/extraction/recipe_structurer.dart';
 import 'package:foodies/features/recipes/data/recipe_repository.dart';
@@ -14,6 +15,7 @@ class ImportPipelineCoordinator {
   final RecipeRepository _recipeRepo;
   final ContentExtractor _extractor;
   final RecipeStructurer _structurer;
+  final AudioTranscriptionService _transcriptionService;
 
   final Map<String, Future<void>> _inFlightFutures = {};
 
@@ -22,10 +24,12 @@ class ImportPipelineCoordinator {
     required RecipeRepository recipeRepo,
     required ContentExtractor extractor,
     required RecipeStructurer structurer,
+    AudioTranscriptionService? transcriptionService,
   })  : _importRepo = importRepo,
         _recipeRepo = recipeRepo,
         _extractor = extractor,
-        _structurer = structurer;
+        _structurer = structurer,
+        _transcriptionService = transcriptionService ?? AudioTranscriptionService();
 
   /// Start a new import pipeline from a URL or shared text
   Future<ImportJobEntity> startImport({
@@ -116,6 +120,20 @@ class ImportPipelineCoordinator {
         thumbnailUrl = result.thumbnailUrl;
         if (result.transcript != null && result.transcript!.trim().isNotEmpty) {
           transcript = result.transcript!.trim();
+        }
+
+        // Stage B (Zero-Mic Native Fallback): If auto-captions were missing,
+        // decode and transcribe audio directly from the video stream
+        if ((transcript == null || transcript.trim().isEmpty) && result.videoUrl != null) {
+          try {
+            final nativeTranscript = await _transcriptionService.transcribeVideoStream(result.videoUrl);
+            if (nativeTranscript != null && nativeTranscript.trim().isNotEmpty) {
+              transcript = nativeTranscript.trim();
+              AppLogger.info('Stage B zero-mic audio transcription extracted: ${transcript.length} chars');
+            }
+          } catch (e) {
+            AppLogger.info('Stage B native video transcription non-fatal error: $e');
+          }
         }
 
         // If extraction is blocked by platform (e.g. login wall) and no caption or transcript available

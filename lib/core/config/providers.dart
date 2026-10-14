@@ -3,6 +3,7 @@ import '../database/app_database.dart'
     hide Recipe, Ingredient, RecipeStep, RecipeTag, ImportJob;
 import '../networking/ollama_client.dart';
 import '../storage/secure_storage_service.dart';
+import '../../features/extraction/audio_transcription_service.dart';
 import '../../features/extraction/content_extractor.dart';
 import '../../features/extraction/recipe_structurer.dart';
 import '../../features/importing/data/import_pipeline_coordinator.dart';
@@ -46,6 +47,10 @@ final contentExtractorProvider = Provider<ContentExtractor>((ref) {
   return ContentExtractor();
 });
 
+final audioTranscriptionServiceProvider = Provider<AudioTranscriptionService>((ref) {
+  return AudioTranscriptionService();
+});
+
 final recipeStructurerProvider = Provider<RecipeStructurer>((ref) {
   final client = ref.watch(ollamaClientProvider);
   return RecipeStructurer(ollamaClient: client);
@@ -56,12 +61,14 @@ final importCoordinatorProvider = Provider<ImportPipelineCoordinator>((ref) {
   final recipeRepo = ref.watch(recipeRepositoryProvider);
   final extractor = ref.watch(contentExtractorProvider);
   final structurer = ref.watch(recipeStructurerProvider);
+  final transcriptionService = ref.watch(audioTranscriptionServiceProvider);
 
   final coordinator = ImportPipelineCoordinator(
     importRepo: importRepo,
     recipeRepo: recipeRepo,
     extractor: extractor,
     structurer: structurer,
+    transcriptionService: transcriptionService,
   );
 
   // Trigger background job recovery
